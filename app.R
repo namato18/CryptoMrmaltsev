@@ -12,23 +12,14 @@ library(binance)
 library(purrr)
 library(shinymanager)
 library(flexdashboard)
-# MINE
-# secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
-# api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+
 
 credentials <- data.frame(
-  user = c('gentlemam1','gentlemam2','gentlemam3','nick',"shiny", "shinymanager"),
-  password = c("gentlemam1234","gentlemam1234","gentlemam1234","123","azerty", "12345"),
+  user = c("USER123",'nick',"shiny", "shinymanager"),
+  password = c("PASSWORD123","123","azerty", "12345"),
   stringsAsFactors = FALSE
 )
 
-#Gentlemam
-# secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
-# api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
-
-# binance::authenticate(key = api_key,secret = secret)
-# 
-# binance::base_url("https://api.binance.us")
 
 str1 = readRDS('tickers/str1.rds')
 str2 = readRDS('tickers/str2.rds')
@@ -57,10 +48,10 @@ ui <- secure_app(dashboardPage(
     sidebarMenu(
       menuItem(text = "Overview/Backtesting", tabName = "create", icon = icon("house")),
       menuItem("Predict Next Candle (Multiple)", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
-      menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line')),
-      menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
-      menuItem("Binance", tabName = "binance", icon = icon('sack-dollar')),
-      menuItem("Binance Automation", tabName = "automation", icon = icon('robot'))
+      menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line'))
+      # menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
+      # menuItem("Binance", tabName = "binance", icon = icon('sack-dollar')),
+      # menuItem("Binance Automation", tabName = "automation", icon = icon('robot'))
       
 
       # menuItem("Most Likely Outcome", tabName = "likely")
@@ -449,72 +440,72 @@ server <- function(input, output, session) {
   })
   
   observe({
-    if(is.null(reactiveValuesToList(res_auth)$user)){
-      
-    }else if(reactiveValuesToList(res_auth)$user == 'nick'){
-      # MINE
-      
-      secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
-      api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
-      binance::authenticate(key = api_key,secret = secret)
-      binance::base_url("https://api.binance.us")
-      
-    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam1'){
-      #Gentlemam
-      secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
-      api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
-      binance::authenticate(key = api_key,secret = secret)
-      binance::base_url("https://api.binance.com")
-    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam2'){
-      #Gentlemam
-      secret = "KECWzTynzt47MdHyFdY28l06G43odgzjXyOKf52VaiA4mEs7x68MTRHpLNl2XH0E"
-      api_key = "3VSV3sbcbDS5DFnYHnpqqKZwQOjFG5hiFXEB7r6Kaev0wTBDQlvyEpOLFZgAhZZD"
-      binance::authenticate(key = api_key,secret = secret)
-      binance::base_url("https://api.binance.com")
-    }else if(reactiveValuesToList(res_auth)$user == 'gentlemam3'){
-      #Gentlemam
-      secret = "xghtE9HU3aNHkMojdVe3jxgAzBu5Xz0EqiuAoifbM9b0rY09KjZntuSJzsCj5gvC"
-      api_key = "HbKcjXOHLS0yseTvMnwX7jxltI0ugk2ZXoiYZHeDRZr9b2XWbiCBkOODsPu6xpSp"
-      binance::authenticate(key = api_key,secret = secret)
-      binance::base_url("https://api.binance.com")
-    }
-    output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
-    output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances()))
-    output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
+    # if(is.null(reactiveValuesToList(res_auth)$user)){
+    #   
+    # }else if(reactiveValuesToList(res_auth)$user == 'nick'){
+    #   # MINE
+    #   
+    #   secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
+    #   api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+    #   binance::authenticate(key = api_key,secret = secret)
+    #   binance::base_url("https://api.binance.us")
+    #   
+    # }else if(reactiveValuesToList(res_auth)$user == 'gentlemam1'){
+    #   #Gentlemam
+    #   secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
+    #   api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
+    #   binance::authenticate(key = api_key,secret = secret)
+    #   binance::base_url("https://api.binance.com")
+    # }else if(reactiveValuesToList(res_auth)$user == 'gentlemam2'){
+    #   #Gentlemam
+    #   secret = "KECWzTynzt47MdHyFdY28l06G43odgzjXyOKf52VaiA4mEs7x68MTRHpLNl2XH0E"
+    #   api_key = "3VSV3sbcbDS5DFnYHnpqqKZwQOjFG5hiFXEB7r6Kaev0wTBDQlvyEpOLFZgAhZZD"
+    #   binance::authenticate(key = api_key,secret = secret)
+    #   binance::base_url("https://api.binance.com")
+    # }else if(reactiveValuesToList(res_auth)$user == 'gentlemam3'){
+    #   #Gentlemam
+    #   secret = "xghtE9HU3aNHkMojdVe3jxgAzBu5Xz0EqiuAoifbM9b0rY09KjZntuSJzsCj5gvC"
+    #   api_key = "HbKcjXOHLS0yseTvMnwX7jxltI0ugk2ZXoiYZHeDRZr9b2XWbiCBkOODsPu6xpSp"
+    #   binance::authenticate(key = api_key,secret = secret)
+    #   binance::base_url("https://api.binance.com")
+    # }
+    # output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
+    # output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances()))
+    # output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
     
-    x = aws.s3::get_bucket_df("cryptomlbucket")
+    # x = aws.s3::get_bucket_df("cryptomlbucket")
     
-    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-
-      
-      df.coins.running = data.frame(User = character(),
-                                    Timeframe = character(),
-                                    Coins = character(),
-                                    Target = character(),
-                                    Confidence = character(),
-                                    Percentage = character(),
-                                    TakeProfit = character(),
-                                    StopLoss = character(),
-                                    Active = character())
-      for(z in 1:length(coins.running)){
-        dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
-        df.coins.running = rbind(df.coins.running, dfx)
-      }
-      # if(length(coins.running) != 0){
-      y = data.frame(Coins = coins.running)
-      if(length(coins.running > 0)){
-        output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
-      }else{
-        output$activeAutomationInfo = NULL
-      }
-      # output$currentAutomation = renderDataTable(datatable(y))
-      # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
-      # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
-      
-      #}
-
- 
+    # x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    # coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+    # 
+    #   
+    #   df.coins.running = data.frame(User = character(),
+    #                                 Timeframe = character(),
+    #                                 Coins = character(),
+    #                                 Target = character(),
+    #                                 Confidence = character(),
+    #                                 Percentage = character(),
+    #                                 TakeProfit = character(),
+    #                                 StopLoss = character(),
+    #                                 Active = character())
+    #   for(z in 1:length(coins.running)){
+    #     dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+    #     df.coins.running = rbind(df.coins.running, dfx)
+    #   }
+    #   # if(length(coins.running) != 0){
+    #   y = data.frame(Coins = coins.running)
+    #   if(length(coins.running > 0)){
+    #     output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+    #   }else{
+    #     output$activeAutomationInfo = NULL
+    #   }
+    #   # output$currentAutomation = renderDataTable(datatable(y))
+    #   # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+    #   # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+    #   
+    #   #}
+    # 
+    # 
     
     
   })
@@ -655,211 +646,107 @@ server <- function(input, output, session) {
     
   })
   
-  observeEvent(input$getLivePrice, {
-    output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
-  })
-  
-  observeEvent(input$submitBinance, {
-    x = possibly_spot_new_order(
-      order_type = input$selectTypeBinance,
-      symbol = input$selectCoinBinance,
-      side = input$selectSideBinance,
-      quantity = input$tradeQuantity,
-      test = FALSE
-    )
-    if(x[1] == 'ERROR'){
-      shinyalert("Order Not Placed",
-                 "Check to see if you used to many decimals or if the minimum order requirements have not been met!",
-                 type = 'error')
-    }else{
-      shinyalert("Success",
-                 "Your order was successfully placed!",
-                 type = 'success')
-    }
-
-    output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
-  })
-  
-  observeEvent(input$percentSliderBinance, {
-    current_balance = spot_account_balances()
-    free_usdt = current_balance$free[current_balance$asset == 'USDT']
-    percentage = (input$percentSliderBinance / 100)
-    quantity_usdt = free_usdt * percentage
-    
-    current_coin_price = round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4)
-    quantity_coin = round(quantity_usdt / current_coin_price, digits = coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance])
-    updateNumericInput(session = session, inputId = 'tradeQuantity',label = 'Quantity',value = quantity_coin, min = 0, step = 0.1)
-  })
-  
-  
-  observeEvent(input$checkGroupBinance, {
-    vol1 = riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
-    vol1 = vol1[-1,]
-    vol2 = riingo_crypto_prices(input$checkGroupBinance,start_date = Sys.Date() - 2,end_date = Sys.Date(), resample_frequency = '5min')
-
-    vol = rbind(vol2, vol1)
-    vol = vol[nrow(vol)-25:nrow(vol),]
-    m.vol = mean(vol$volume)
-    vol.now = vol$volume[(nrow(vol)-1)]
-
-    vol.compare = (vol.now/m.vol * 100) - 100
-
-    output$volumeGauge = renderGauge({
-      gauge(vol.compare,
-            min = -100,
-            max = 100,
-            sectors = gaugeSectors(
-              success = c(20, 100),
-              warning = c(-20, 20),
-              danger = c(-100, -20)))
-    })
-  })
-  
-
-  
-  observeEvent(input$submitBinanceAutomation, {
-    
-    x = data.frame(User = reactiveValuesToList(res_auth)$user,
-                   Timeframe = input$timeframeAutomation,
-                   Coins = input$checkGroupBinance,
-                   Target = input$sliderAutomationTarget,
-                   Confidence = input$confidenceThresholdAutomation,
-                   Percentage = input$sliderBalanceUsed,
-                   TakeProfit = input$takeProfitBinanceAutomation,
-                   StopLoss = (input$stopLossBinanceAutomation / 100) * input$takeProfitBinanceAutomation,
-                   Active = TRUE
-                   )
-    saveRDS(x, file = paste0(tempdir(), "/x.rds"))
-
-    aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
-
-    put_object(
-      file = file.path(tempdir(), "x.rds"),
-      object = paste0(input$checkGroupBinance,".rds"),
-      bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
-    )
-    
-    x = aws.s3::get_bucket_df("cryptomlbucket")
-    
-    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    if(length(coins.running) != 0){
-      y = data.frame(Coins = coins.running)
-      # output$currentAutomation = renderDataTable(datatable(y))
-    }
-    
-    # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
-    # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
-    
-    x = aws.s3::get_bucket_df("cryptomlbucket")
-    
-    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    
-
-      df.coins.running = data.frame(User = character(),
-                                    Timeframe = character(),
-                                    Coins = character(),
-                                    Target = character(),
-                                    Confidence = character(),
-                                    Percentage = character(),
-                                    TakeProfit = character(),
-                                    StopLoss = character(),
-                                    Active = character())
-      for(z in 1:length(coins.running)){
-        dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
-        df.coins.running = rbind(df.coins.running, dfx)
-      }
-      if(length(coins.running > 0)){
-        output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
-      }else{
-        output$activeAutomationInfo = NULL
-      }    
-    
-
-    
-    shinyalert("Success",
-               "Your Automation Was Successfully Started!",
-               type = 'success')
-  })
-  
-  observeEvent(input$cancelBinanceAutomation, {
-    
-    # x = data.frame(User = reactiveValuesToList(res_auth)$user,
-    #                Timeframe = input$timeframeAutomation,
-    #                Coins = input$checkGroupBinance,
-    #                Target = input$sliderAutomationTarget,
-    #                Confidence = input$confidenceThresholdAutomation,
-    #                Percentage = input$sliderBalanceUsed,
-    #                TakeProfit = input$takeProfitBinanceAutomation,
-    #                StopLoss = input$stopLossBinanceAutomation,
-    #                Active = FALSE
-    # )
-    # saveRDS(x, file = paste0(tempdir(), "/x.rds"))
-    # 
-    # aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
-    # 
-    # put_object(
-    #   file = file.path(tempdir(), "x.rds"),
-    #   object = paste0(input$checkGroupBinance,".rds"),
-    #   bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
-    # )
-    aws.s3::delete_object(object = paste0(input$checkGroupBinance,".rds"), bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user))
-    x = aws.s3::get_bucket_df("cryptomlbucket")
-    
-    x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    # if(length(coins.running) != 0){
-      y = data.frame(Coins = coins.running)
-      # output$currentAutomation = renderDataTable(datatable(y))
-      # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
-      # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
-      
-      x = aws.s3::get_bucket_df("cryptomlbucket")
-      
-      x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-      coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-
-        df.coins.running = data.frame(User = character(),
-                                      Timeframe = character(),
-                                      Coins = character(),
-                                      Target = character(),
-                                      Confidence = character(),
-                                      Percentage = character(),
-                                      TakeProfit = character(),
-                                      StopLoss = character(),
-                                      Active = character())
-        for(z in 1:length(coins.running)){
-          dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
-          df.coins.running = rbind(df.coins.running, dfx)
-        }
-        if(length(coins.running > 0)){
-          output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
-        }else{
-          output$activeAutomationInfo = NULL
-        }      
-
-    # }
-    
-    shinyalert("Success",
-               "Your Automation Was Successfully Stopped!",
-               type = 'success')
-  })
-  # observeEvent(input$selectTradesPlaced, {
-  #   y = binance::spot_trades_list(symbol=input$selectTradesPlaced)
-  #   if(!is.null(y)){
-  #     y = y %>%
-  #       select(symbol, time, price, qty, commission, commission_asset, side)
-  #     output$tradesPlaced = renderDataTable(datatable(y))
-  #   }
-  # 
+  # observeEvent(input$getLivePrice, {
+  #   output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
   # })
   
-  # observeEvent(input$selectActiveAutomation, {
+  # observeEvent(input$submitBinance, {
+  #   x = possibly_spot_new_order(
+  #     order_type = input$selectTypeBinance,
+  #     symbol = input$selectCoinBinance,
+  #     side = input$selectSideBinance,
+  #     quantity = input$tradeQuantity,
+  #     test = FALSE
+  #   )
+  #   if(x[1] == 'ERROR'){
+  #     shinyalert("Order Not Placed",
+  #                "Check to see if you used to many decimals or if the minimum order requirements have not been met!",
+  #                type = 'error')
+  #   }else{
+  #     shinyalert("Success",
+  #                "Your order was successfully placed!",
+  #                type = 'success')
+  #   }
+  # 
+  #   output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
+  # })
+  
+  # observeEvent(input$percentSliderBinance, {
+  #   current_balance = spot_account_balances()
+  #   free_usdt = current_balance$free[current_balance$asset == 'USDT']
+  #   percentage = (input$percentSliderBinance / 100)
+  #   quantity_usdt = free_usdt * percentage
+  #   
+  #   current_coin_price = round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4)
+  #   quantity_coin = round(quantity_usdt / current_coin_price, digits = coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance])
+  #   updateNumericInput(session = session, inputId = 'tradeQuantity',label = 'Quantity',value = quantity_coin, min = 0, step = 0.1)
+  # })
+  # 
+  
+  # observeEvent(input$checkGroupBinance, {
+  #   vol1 = riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
+  #   vol1 = vol1[-1,]
+  #   vol2 = riingo_crypto_prices(input$checkGroupBinance,start_date = Sys.Date() - 2,end_date = Sys.Date(), resample_frequency = '5min')
+  # 
+  #   vol = rbind(vol2, vol1)
+  #   vol = vol[nrow(vol)-25:nrow(vol),]
+  #   m.vol = mean(vol$volume)
+  #   vol.now = vol$volume[(nrow(vol)-1)]
+  # 
+  #   vol.compare = (vol.now/m.vol * 100) - 100
+  # 
+  #   output$volumeGauge = renderGauge({
+  #     gauge(vol.compare,
+  #           min = -100,
+  #           max = 100,
+  #           sectors = gaugeSectors(
+  #             success = c(20, 100),
+  #             warning = c(-20, 20),
+  #             danger = c(-100, -20)))
+  #   })
+  # })
+  # 
+
+  
+  # observeEvent(input$submitBinanceAutomation, {
+  #   
+  #   x = data.frame(User = reactiveValuesToList(res_auth)$user,
+  #                  Timeframe = input$timeframeAutomation,
+  #                  Coins = input$checkGroupBinance,
+  #                  Target = input$sliderAutomationTarget,
+  #                  Confidence = input$confidenceThresholdAutomation,
+  #                  Percentage = input$sliderBalanceUsed,
+  #                  TakeProfit = input$takeProfitBinanceAutomation,
+  #                  StopLoss = (input$stopLossBinanceAutomation / 100) * input$takeProfitBinanceAutomation,
+  #                  Active = TRUE
+  #                  )
+  #   saveRDS(x, file = paste0(tempdir(), "/x.rds"))
+  # 
+  #   aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
+  # 
+  #   put_object(
+  #     file = file.path(tempdir(), "x.rds"),
+  #     object = paste0(input$checkGroupBinance,".rds"),
+  #     bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
+  #   )
+  #   
   #   x = aws.s3::get_bucket_df("cryptomlbucket")
   #   
   #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
   #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  #   if(length(coins.running) != 0){
+  #     y = data.frame(Coins = coins.running)
+  #     # output$currentAutomation = renderDataTable(datatable(y))
+  #   }
+  #   
+  #   # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+  #   # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+  #   
+  #   x = aws.s3::get_bucket_df("cryptomlbucket")
+  #   
+  #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  #   
   # 
   #     df.coins.running = data.frame(User = character(),
   #                                   Timeframe = character(),
@@ -874,10 +761,114 @@ server <- function(input, output, session) {
   #       dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
   #       df.coins.running = rbind(df.coins.running, dfx)
   #     }
-  #     output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+  #     if(length(coins.running > 0)){
+  #       output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+  #     }else{
+  #       output$activeAutomationInfo = NULL
+  #     }    
   #   
+  # 
+  #   
+  #   shinyalert("Success",
+  #              "Your Automation Was Successfully Started!",
+  #              type = 'success')
   # })
-  
+  # 
+  # observeEvent(input$cancelBinanceAutomation, {
+  #   
+  #   # x = data.frame(User = reactiveValuesToList(res_auth)$user,
+  #   #                Timeframe = input$timeframeAutomation,
+  #   #                Coins = input$checkGroupBinance,
+  #   #                Target = input$sliderAutomationTarget,
+  #   #                Confidence = input$confidenceThresholdAutomation,
+  #   #                Percentage = input$sliderBalanceUsed,
+  #   #                TakeProfit = input$takeProfitBinanceAutomation,
+  #   #                StopLoss = input$stopLossBinanceAutomation,
+  #   #                Active = FALSE
+  #   # )
+  #   # saveRDS(x, file = paste0(tempdir(), "/x.rds"))
+  #   # 
+  #   # aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
+  #   # 
+  #   # put_object(
+  #   #   file = file.path(tempdir(), "x.rds"),
+  #   #   object = paste0(input$checkGroupBinance,".rds"),
+  #   #   bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
+  #   # )
+  #   aws.s3::delete_object(object = paste0(input$checkGroupBinance,".rds"), bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user))
+  #   x = aws.s3::get_bucket_df("cryptomlbucket")
+  #   
+  #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  #   # if(length(coins.running) != 0){
+  #     y = data.frame(Coins = coins.running)
+  #     # output$currentAutomation = renderDataTable(datatable(y))
+  #     # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+  #     # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+  #     
+  #     x = aws.s3::get_bucket_df("cryptomlbucket")
+  #     
+  #     x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  #     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  # 
+  #       df.coins.running = data.frame(User = character(),
+  #                                     Timeframe = character(),
+  #                                     Coins = character(),
+  #                                     Target = character(),
+  #                                     Confidence = character(),
+  #                                     Percentage = character(),
+  #                                     TakeProfit = character(),
+  #                                     StopLoss = character(),
+  #                                     Active = character())
+  #       for(z in 1:length(coins.running)){
+  #         dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+  #         df.coins.running = rbind(df.coins.running, dfx)
+  #       }
+  #       if(length(coins.running > 0)){
+  #         output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+  #       }else{
+  #         output$activeAutomationInfo = NULL
+  #       }      
+  # 
+  #   # }
+  #   
+  #   shinyalert("Success",
+  #              "Your Automation Was Successfully Stopped!",
+  #              type = 'success')
+  # })
+  # # observeEvent(input$selectTradesPlaced, {
+  # #   y = binance::spot_trades_list(symbol=input$selectTradesPlaced)
+  # #   if(!is.null(y)){
+  # #     y = y %>%
+  # #       select(symbol, time, price, qty, commission, commission_asset, side)
+  # #     output$tradesPlaced = renderDataTable(datatable(y))
+  # #   }
+  # # 
+  # # })
+  # 
+  # # observeEvent(input$selectActiveAutomation, {
+  # #   x = aws.s3::get_bucket_df("cryptomlbucket")
+  # #   
+  # #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  # #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  # # 
+  # #     df.coins.running = data.frame(User = character(),
+  # #                                   Timeframe = character(),
+  # #                                   Coins = character(),
+  # #                                   Target = character(),
+  # #                                   Confidence = character(),
+  # #                                   Percentage = character(),
+  # #                                   TakeProfit = character(),
+  # #                                   StopLoss = character(),
+  # #                                   Active = character())
+  # #     for(z in 1:length(coins.running)){
+  # #       dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+  # #       df.coins.running = rbind(df.coins.running, dfx)
+  # #     }
+  # #     output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+  # #   
+  # # })
+  # 
   observeEvent(input$timeframe,{
     if(input$timeframe == "15min" | input$timeframe == "1hour"){
       updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1)

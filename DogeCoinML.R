@@ -243,8 +243,8 @@ assign('bst',bst,.GlobalEnv)
 
 predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .GlobalEnv){
   # # Symbols = Symbols
-  # Symbols = c('FETUSDT')
-  # Timeframe = '4hour'
+  # Symbols = c('BTCUSDT')
+  # Timeframe = '1day'
   # i = 1
   # SuccessThreshold = 0.9
   
@@ -261,12 +261,12 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
   
   for(i in 1:length(Symbols)){
     if(Timeframe == '4hour' | Timeframe == '8hour'| Timeframe == '1hour'| Timeframe == '15min'){
-      df1 = riingo_crypto_prices(Symbols[i], start_date = Sys.Date() - 7, end_date = Sys.Date(), resample_frequency = Timeframe)
+      df1 = riingo_crypto_prices(Symbols[i], start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
       df1 = df1[-nrow(df1),]
       df2 = riingo_crypto_latest(Symbols[i], resample_frequency = Timeframe)
       df = rbind(df1,df2)
     }else{
-      df = riingo_crypto_prices(Symbols[i],Sys.Date() - 7, end_date = Sys.Date(), resample_frequency = Timeframe)
+      df = riingo_crypto_prices(Symbols[i],Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
     }
     # Modify data to be more useable
     df = df[,4:9]
@@ -333,10 +333,14 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     df = df[,-which(colnames(df) %in% c("MA10","MA20"))]
     
     # Convert to actual dates and remove year and change to numeric
-    df$Date = str_replace(string = df$Date, pattern = "T", replacement = " ")
-    df$Date = str_replace(string = df$Date, pattern = "Z", replacement = "")
-    
-    df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
+    if(!grepl(pattern ="day|daily|weekly|week",Timeframe)){
+      df$Date = str_replace(string = df$Date, pattern = "T", replacement = " ")
+      df$Date = str_replace(string = df$Date, pattern = "Z", replacement = "")
+      
+      df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
+    }else{
+      df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d")
+    }
     
     df = df[!is.na(df$Date),]
     
@@ -484,12 +488,12 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     ###############################
     ############################### READ IN DATASET
     if(Timeframe == '4hour' | Timeframe == '8hour'| Timeframe == '1hour'| Timeframe == '15min'){
-      df1 = riingo_crypto_prices(Symbols[i], start_date = Sys.Date() - 7, end_date = Sys.Date(), resample_frequency = Timeframe)
+      df1 = riingo_crypto_prices(Symbols[i], start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
       df1 = df1[-nrow(df1),]
       df2 = riingo_crypto_latest(Symbols[i], resample_frequency = Timeframe)
       df = rbind(df1,df2)
     }else{
-      df = riingo_crypto_prices(Symbols[i],Sys.Date() - 7, end_date = Sys.Date(), resample_frequency = Timeframe)
+      df = riingo_crypto_prices(Symbols[i],Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
     }
     
     ###############################
@@ -611,8 +615,8 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     predictions.df.pos$C.Score.HIT.TARGET = predictions.pos
     
     buyCond1 = predictions.df.pos$C.Score.HIT.TARGET >= SuccessThreshold
-    buyCond2 = predictions.df.pos$C.Score.BreakPrevoiusLow <= 0.4
-    buyCond3 = predictions.df.pos$C.Score.BreakPrevoiusLow > 0.4 & predictions.df.pos$Previous.Low < 0.33 
+    # buyCond2 = predictions.df.pos$C.Score.BreakPrevoiusLow <= 0.4
+    # buyCond3 = predictions.df.pos$C.Score.BreakPrevoiusLow > 0.4 & predictions.df.pos$break.low.perc < 0.33 
     
     predictions.df.pos$Previous.High = paste0(break.high.perc,"%")
     predictions.df.pos$Previous.Low = paste0(break.low.perc, "%")
@@ -621,7 +625,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     
     
     predictions.df.pos$Price.Change = paste0(predictions.df.pos$Price.Change,"% or more")
-    predictions.df.pos$Signal[buyCond1 & (buyCond2 | buyCond3)] = "BUY SIGNAL"
+    predictions.df.pos$Signal[buyCond1] = "BUY SIGNAL"
     predictions.df.pos[nrow(predictions.df.pos)+1,] <- NA
     ############ 
     
