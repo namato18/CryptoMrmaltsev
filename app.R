@@ -12,7 +12,24 @@ library(binance)
 library(purrr)
 library(shinymanager)
 library(flexdashboard)
+library(fresh)
 
+mytheme <- create_theme(
+  adminlte_color(
+    light_blue = "#1D8348"
+  ),
+  adminlte_sidebar(
+    width = "400px",
+    dark_bg = "#17202A",
+    dark_hover_bg = "#82E0AA",
+    dark_color = "#FFF"
+  ),
+  adminlte_global(
+    content_bg = "#FFF",
+    box_bg = "#D8DEE9", 
+    info_box_bg = "#D8DEE9"
+  )
+)
 
 credentials <- data.frame(
   user = c("USER123",'nick',"shiny", "shinymanager"),
@@ -41,7 +58,7 @@ possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
 ui <- secure_app(dashboardPage(
   dashboardHeader(title = shinyDashboardLogo(
     theme = "poor_mans_flatly",
-    boldText = "Crypto Currency",
+    boldText = "Markets",
     mainText = 'Predictor',
     badgeText = "v1.5"
   ),
@@ -62,14 +79,17 @@ ui <- secure_app(dashboardPage(
     )
   ),
   dashboardBody(
-    shinyDashboardThemes(
-      theme = "poor_mans_flatly"
-    ),
+    use_theme(mytheme),
+    # shinyDashboardThemes(
+    #   theme = "poor_mans_flatly"
+    # ),
     tabItems(
       tabItem(tabName = "create",
               fluidPage(
-                verbatimTextOutput("auth_output"),
-                img(src='logo2.png', width = 200, height = 200, align = 'right' ),
+                # setBackgroundColor(color="black",shinydashboard = TRUE),
+                setBackgroundImage(src = "green2.jpg",shinydashboard = TRUE),
+                # verbatimTextOutput("auth_output"),
+                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
                 #        <input type="hidden" name="cmd" value="_s-xclick">
                 #        <input type="hidden" name="hosted_button_id" value="2MGB68YUJEB5Q">
@@ -77,8 +97,7 @@ ui <- secure_app(dashboardPage(
                 #        <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1" target="_blank">
                 #        </form>'),
                 
-                strong(h1("Creating a Model:")),
-                box(width = 10,
+                box(title = "Creating a Model", solidHeader = TRUE, status = "primary", width = 10,
                 paste0("On this tab you can use the sliders to modify how the predictive model is created. First you need to select a timeframe ",
                        "and coin that you're interested in predicting. ","The first slider is used ",
                        "to select the percentage increase in the timeframe that you've selected. The second slider is used ",
