@@ -28,7 +28,10 @@ str1 = str1[-61]
 str2 = str2[-61]
 coin_decimals = readRDS('coin_decimals.rds')
 
+stock1 = readRDS('tickers/stock1.rds')
+
 checkbox_list = setNames(str1, str1)
+stock.names = setNames(stock1,stock1)
 
 possibly_spot_new_order = possibly(spot_new_order, otherwise = 'ERROR')
 possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
@@ -87,6 +90,8 @@ ui <- secure_app(dashboardPage(
       
                 column(width = 6,
                        box(title = "Inputs", solidHeader = TRUE, status = "primary", width = NULL,
+                         selectInput("selectType", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
+                                                                                                "Crypto" = "Crypto")),
                          selectInput("timeframe","Pick a Timeframe", choices = list("15 Minutes" = "15min",
                                                                                     "1 Hour" = "1hour",
                                                                                     "4 Hour" = "4hour",
@@ -185,7 +190,9 @@ ui <- secure_app(dashboardPage(
                 br(),
                 box(title = "Predict Multiple", status = "primary", solidHeader = TRUE,
                     # actionButton('selectall','Select All'),
-                    selectInput('checkGroup',label = 'Select Coin(s)', choices = checkbox_list, multiple = TRUE),
+                    selectInput("selectTypeMult", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
+                                                                                           "Crypto" = "Crypto")),
+                    selectizeInput('checkGroup',label = 'Select Coin(s)', choices = checkbox_list, multiple = TRUE, options = list(maxItems = 5)),
                     # checkboxGroupInput('checkGroup', label = 'Select Coin(s)',
                     #                    choices = checkbox_list,
                     #                    selected = 'btcusd'),
@@ -606,7 +613,7 @@ server <- function(input, output, session) {
     x = input$checkGroup
     updateSelectInput(session = session, inputId = 'candlestickInput', choices = x, selected = head(x,1))
     
-    predict.tomorrow.multiple(input$checkGroup, input$timeframePredict, input$slider3, .GlobalEnv)
+    predict.tomorrow.multiple(input$selectTypeMult,input$checkGroup, input$timeframePredict, input$slider3, .GlobalEnv)
     dt.colored = datatable(predictions.df.comb,
                            rownames = FALSE,
                            extensions = c("Buttons","FixedHeader"),
@@ -877,6 +884,38 @@ server <- function(input, output, session) {
     }
   })
   
+  observeEvent(input$selectType, {
+    if(input$selectType == "Stocks"){
+      updateSelectInput(inputId = "select", label = "Pick a Stock to Predict", choices = stock.names)
+      updateSelectInput(inputId = "timeframe",label = "Pick a Timeframe", choices = list("Daily" = "daily",
+                                                                       "Weekly" = "weekly"))
+    }
+    if(input$selectType == "Crypto"){
+      updateSelectInput(inputId = "select", label = "Pick a Crypto to Predict", choices = checkbox_list)
+      updateSelectInput(inputId = "timeframe",label = "Pick a Timeframe", choices = list("15 Minutes" = "15min",
+                                                                       "1 Hour" = "1hour",
+                                                                       "4 Hour" = "4hour",
+                                                                       "8 Hour" = "8hour",
+                                                                       "1 Day" = "1day"))
+    }
+  })
+  
+  observeEvent(input$selectTypeMult, {
+    if(input$selectTypeMult == "Stocks"){
+      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Stock to Predict", choices = stock.names, options = list(maxItems = 5))
+      updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("Daily" = "daily",
+                                                                                         "Weekly" = "weekly"))
+    }
+    if(input$selectTypeMult == "Crypto"){
+      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Crypto to Predict", choices = checkbox_list, options = list(maxItems = 5))
+      updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("15 Minutes" = "15min",
+                                                                                         "1 Hour" = "1hour",
+                                                                                         "4 Hour" = "4hour",
+                                                                                         "8 Hour" = "8hour",
+                                                                                         "1 Day" = "1day"))
+    }
+  })
+
 }
 
 # Run the application 

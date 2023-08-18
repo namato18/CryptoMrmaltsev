@@ -104,8 +104,8 @@ if(timeframe == '1day'){
 
 createModel <- function(TargetIncreasePercent, SuccessThreshold, Symbol, Timeframe, TP=0){
 
-# Symbol = 'ETHUSDT'
-# Timeframe = '4hour'
+# Symbol = 'AAPL'
+# Timeframe = '15min'
 # TargetIncreasePercent = "1"
 # SuccessThreshold = '0.9'
 # df = readRDS(paste0("bsts/df_",'ETHUSD','4hour',".rds"))
@@ -241,13 +241,15 @@ assign('bst',bst,.GlobalEnv)
 
 
 
-predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .GlobalEnv){
+predict.tomorrow.multiple <- function(Type,Symbols, Timeframe, SuccessThreshold, .GlobalEnv){
   # # Symbols = Symbols
-  # Symbols = c('BTCUSDT')
-  # Timeframe = '1day'
+  # Symbols = c('AAPL')
+  # Timeframe = 'weekly'
   # i = 1
   # SuccessThreshold = 0.9
+  # Type="Stocks"
   
+  print(Type)
   predictions.df.comb = data.frame("Coin" = character(),
                               "Price Change" = character(),
                               "C.Score.HIT.TARGET" = character(),
@@ -260,16 +262,25 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
   
   
   for(i in 1:length(Symbols)){
-    if(Timeframe == '4hour' | Timeframe == '8hour'| Timeframe == '1hour'| Timeframe == '15min'){
-      df1 = riingo_crypto_prices(Symbols[i], start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
-      df1 = df1[-nrow(df1),]
-      df2 = riingo_crypto_latest(Symbols[i], resample_frequency = Timeframe)
-      df = rbind(df1,df2)
+    
+    if(Type == "Stocks"){
+      df = riingo_prices(Symbols[i],Sys.Date() - 300, end_date = Sys.Date(), resample_frequency = Timeframe)
     }else{
-      df = riingo_crypto_prices(Symbols[i],Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
+      if(Timeframe == '4hour' | Timeframe == '8hour'| Timeframe == '1hour'| Timeframe == '15min'){
+        df1 = riingo_crypto_prices(Symbols[i], start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
+        df1 = df1[-nrow(df1),]
+        df2 = riingo_crypto_latest(Symbols[i], resample_frequency = Timeframe)
+        df = rbind(df1,df2)
+      }else{
+        df = riingo_crypto_prices(Symbols[i],Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
+      }
+      df = df[,4:9]
     }
+
     # Modify data to be more useable
-    df = df[,4:9]
+    df = df %>%
+      select("date","open","high","low","close","volume")
+    
     df$Percent.Change = NA
 
     colnames(df) = c("Date","Open","High","Low","Close","Volume","Percent.Change")
@@ -364,7 +375,7 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
       df = cbind(df, candle.list[[k]])
     }
     # df = cbind(df, trend$Trend)
-    df = df[-(1:20),]
+ 
     
     
     # Add lagged values
@@ -376,7 +387,11 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
       
     }
     
-    df = df[-c(1:5),]
+    df = df[-(1:20),]
+    
+    if(nrow(df) > 5){
+      df = df[-c(1:5),]
+    }
     
     df[is.na(df)] = 0
     # Round columns to be more general
@@ -388,7 +403,9 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
 
     
     # grab second to last entry since that is the most recent closed candle
-    df = df[nrow(df)-1,]
+    if(nrow(df) > 1){
+      df = df[nrow(df)-1,]
+    }
     
 
     
@@ -487,19 +504,24 @@ predict.tomorrow.multiple <- function(Symbols, Timeframe, SuccessThreshold, .Glo
     
     ###############################
     ############################### READ IN DATASET
-    if(Timeframe == '4hour' | Timeframe == '8hour'| Timeframe == '1hour'| Timeframe == '15min'){
-      df1 = riingo_crypto_prices(Symbols[i], start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
-      df1 = df1[-nrow(df1),]
-      df2 = riingo_crypto_latest(Symbols[i], resample_frequency = Timeframe)
-      df = rbind(df1,df2)
+    if(Type == "Stocks"){
+      df = riingo_prices(Symbols[i],Sys.Date() - 300, end_date = Sys.Date(), resample_frequency = Timeframe)
     }else{
-      df = riingo_crypto_prices(Symbols[i],Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
+      if(Timeframe == '4hour' | Timeframe == '8hour'| Timeframe == '1hour'| Timeframe == '15min'){
+        df1 = riingo_crypto_prices(Symbols[i], start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
+        df1 = df1[-nrow(df1),]
+        df2 = riingo_crypto_latest(Symbols[i], resample_frequency = Timeframe)
+        df = rbind(df1,df2)
+      }else{
+        df = riingo_crypto_prices(Symbols[i],Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = Timeframe)
+      }
+      df = df[,4:9]
     }
     
     ###############################
     ############################### JUST FILTERING OUT UNECESSARY COLUMNS
-    df = df[,4:9]
-    
+    df = df %>%
+      select("date","open","high","low","close","volume")
     ###############################
     ############################### CHANGE NAMES
     colnames(df) = c("Date","Open","High","Low","Close","Volume")
