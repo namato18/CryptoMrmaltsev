@@ -16,12 +16,12 @@ library(fresh)
 
 mytheme <- create_theme(
   adminlte_color(
-    light_blue = "#1D8348"
+    light_blue = "#17202A"
   ),
   adminlte_sidebar(
     width = "400px",
     dark_bg = "#17202A",
-    dark_hover_bg = "#82E0AA",
+    dark_hover_bg = "#586473",
     dark_color = "#FFF"
   ),
   adminlte_global(
@@ -43,6 +43,9 @@ str2 = readRDS('tickers/str2.rds')
 
 str1 = str1[-61]
 str2 = str2[-61]
+
+fx.pair.names = readRDS("tickers/fx.pair.names.rds")
+
 coin_decimals = readRDS('coin_decimals.rds')
 
 stock1 = readRDS('tickers/stock1.rds')
@@ -87,7 +90,7 @@ ui <- secure_app(dashboardPage(
       tabItem(tabName = "create",
               fluidPage(
                 # setBackgroundColor(color="black",shinydashboard = TRUE),
-                setBackgroundImage(src = "green2.jpg",shinydashboard = TRUE),
+                # setBackgroundImage(src = "green2.jpg",shinydashboard = TRUE),
                 # verbatimTextOutput("auth_output"),
                 img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
@@ -102,7 +105,7 @@ ui <- secure_app(dashboardPage(
                        "and coin that you're interested in predicting. ","The first slider is used ",
                        "to select the percentage increase in the timeframe that you've selected. The second slider is used ",
                        "to select how confident you want the model to be in order to classify a 'BUY'. The model will make a prediction on a scale from ",
-                       "0-1, the closer to 1 the prediction is, the more confident the model is that your selected percentage increase will happen in your selected timeframe."),
+                       "0-1, the closer to 1 the prediction is, the more confident the model is that your selected percentage increase will happen in your selected timeframe.")
                 ),
                 br(),
 
@@ -110,7 +113,8 @@ ui <- secure_app(dashboardPage(
                 column(width = 6,
                        box(title = "Inputs", solidHeader = TRUE, status = "primary", width = NULL,
                          selectInput("selectType", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
-                                                                                                "Crypto" = "Crypto")),
+                                                                                                "Crypto" = "Crypto",
+                                                                                                "Forex" = "Forex")),
                          selectInput("timeframe","Pick a Timeframe", choices = list("15 Minutes" = "15min",
                                                                                     "1 Hour" = "1hour",
                                                                                     "4 Hour" = "4hour",
@@ -130,7 +134,7 @@ ui <- secure_app(dashboardPage(
                          # numericInput("sl","Set SL (must be negative)", value = 0, max = 0),
                          actionButton('action1', label = "Generate"),
                          br(),
-                         br(),
+                         br()
                        ),
                        box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
                          # infoBoxOutput("OverallAccuracy", width = 6),
@@ -199,18 +203,18 @@ ui <- secure_app(dashboardPage(
       #         ),
       tabItem(tabName = "predictMultiple",
               fluidRow(
-                img(src='logo2.png', width = 200, height = 200, align = 'right' ),
-                strong(h1("Predict Next Candle (Multiple):")),
-                box(width = 10,
+                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                box(title = "Predict Next Candle (Multiple):", status = "primary", solidHeader = TRUE,width = 10,
                 paste0("On this tab you can generate predictions for multiple coins! Simply use the check boxes to select which coins you'd like to predict.",
-                       " If you'd like to export these results, simply press the 'csv' button on top of the table below."),
+                       " If you'd like to export these results, simply press the 'csv' button on top of the table below.")
                 ),
                 br(),
                 br(),
                 box(title = "Predict Multiple", status = "primary", solidHeader = TRUE,
                     # actionButton('selectall','Select All'),
                     selectInput("selectTypeMult", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
-                                                                                           "Crypto" = "Crypto")),
+                                                                                           "Crypto" = "Crypto",
+                                                                                           "Forex" = "Forex")),
                     selectizeInput('checkGroup',label = 'Select Coin(s)', choices = checkbox_list, multiple = TRUE, options = list(maxItems = 5)),
                     # checkboxGroupInput('checkGroup', label = 'Select Coin(s)',
                     #                    choices = checkbox_list,
@@ -258,7 +262,7 @@ ui <- secure_app(dashboardPage(
                     strong('Signal:'),
                     paste0("Either BUY or DON'T BUY depending on if the Confidence.Score.HIT.TARGET is above or below your selected BUY prediction threshold"),
                     br(),
-                  dataTableOutput("multipleOutput"),
+                  dataTableOutput("multipleOutput")
 
                 )
 
@@ -267,12 +271,12 @@ ui <- secure_app(dashboardPage(
 
       tabItem(tabName = "inputCoin",
               fluidRow(
-                img(src='logo2.png', width = 200, height = 200, align = 'right' ),
+                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 strong(h1("Generate Model using TradingView Data:")),
                 box(width = 10,
                 paste0("On this tab you can generate a predictive model for data that you input from TradingView. You need to export TradingView data ",
                        "with no indicators on the chart. The 'Time Format' must also be set to ISO time. Name the exported file follwing the format <coinsymbol>.csv. For example, BTCUSD data would simply be BTCUSD.csv. Once you've exported the TradingView data",
-                       " you simply drag that file into the input below. A timeframe must also be selected."),
+                       " you simply drag that file into the input below. A timeframe must also be selected.")
                 ),
                 br(),
                 br(),
@@ -312,20 +316,17 @@ ui <- secure_app(dashboardPage(
       
       tabItem(tabName = "predictNextWeek",
               fluidRow(
-                img(src='logo2.png', width = 200, height = 200, align = 'right' ),
-                strong(h1("Predict Next 7 Days/Weeks:")),
-                box(width=10,
+                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                box(title = "Predict Next 7 Days/Weeks:", status = "primary", solidHeader = TRUE,width = 10,
                 paste0("On this tab you may pick a crypto to forecast for the next 7 days/weeks! The machine learning model utilizes the past 14 candles of data ",
-                       "to predict the next 7 candles price movements!"),
+                       "to predict the next 7 candles price movements!")
                 ),
                 br(),
                 br(),
-                br(),
-                br(),
-                strong('Note: Previous data is displayed in BLUE while forecasted data is displayed in RED'),
-                br(),
-                br(),
                 box(title = "Predict Next 7 Days/Weeks", status = "primary", solidHeader = TRUE,
+                    selectInput("selectTypeWeek", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
+                                                                                           "Crypto" = "Crypto",
+                                                                                           "Forex" = "Forex")),
                     selectInput('selectTimeFrame', 'Select a time frame', choices = list('7 Days' = 'daily',
                                                                                          '7 Weeks' = 'weekly')),
                     selectInput('selectNextWeek', "Select a Coin", choices = checkbox_list),
@@ -335,16 +336,19 @@ ui <- secure_app(dashboardPage(
 
 
                 ),
-                plotOutput("nextWeekOutput")
+                
+                plotOutput("nextWeekOutput"),
+                strong('Note: Previous data is displayed in BLUE while forecasted data is displayed in RED')
+                
               )
       ),
       
       tabItem(tabName = "binance",
               fluidRow(
-                img(src='logo2.png', width = 200, height = 200, align = 'right' ),
+                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 strong(h1("Binance Integration")),
                 box(width=10,
-                    paste0("This tab offers you the capability of performing trades on Binance directly through this interface."),
+                    paste0("This tab offers you the capability of performing trades on Binance directly through this interface.")
                 ),
                 box(title = "Inputs", status = "primary", solidHeader = TRUE,
                     selectInput('selectCoinBinance', "Select a Coin", choices = checkbox_list, selected = 'BTCUSDT'),
@@ -390,10 +394,10 @@ ui <- secure_app(dashboardPage(
       ),
       tabItem(tabName = "automation",
               fluidRow(
-                img(src='logo2.png', width = 200, height = 200, align = 'right' ),
+                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 strong(h1("Binance Automation")),
                 box(width=10,
-                    paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
+                    paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria.")
                 ),
                 box(title = "Inputs", status = "primary", solidHeader = TRUE,width=4,
                   selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("1 Hour" = "1hour",
@@ -409,7 +413,7 @@ ui <- secure_app(dashboardPage(
                   br(),
                   sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
                   br(),
-                  sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
+                  sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9)
 
                   
                 ),
@@ -459,7 +463,7 @@ ui <- secure_app(dashboardPage(
 # Define server logic
 server <- function(input, output, session) {
   res_auth <- secure_server(
-    check_credentials = check_credentials(credentials),
+    check_credentials = check_credentials(credentials)
   )
   output$auth_output <- renderPrint({
     reactiveValuesToList(res_auth)$user
@@ -572,7 +576,7 @@ server <- function(input, output, session) {
   observeEvent(input$action1, {
     showModal(modalDialog("Generating Your Model...", footer = NULL))
     on.exit(removeModal())
-    createModel(input$slider1, input$slider2, input$select, input$timeframe, input$slider1)
+    createModel(input$selectType,input$slider1, input$slider2, input$select, input$timeframe, input$slider1)
     # output$OverallAccuracy = renderInfoBox({
     #   infoBox("Overall Accuracy",paste0(round(overall.accuracy, digits = 2), "%"), icon = icon('check'))
     #   })
@@ -632,7 +636,11 @@ server <- function(input, output, session) {
     x = input$checkGroup
     updateSelectInput(session = session, inputId = 'candlestickInput', choices = x, selected = head(x,1))
     
-    predict.tomorrow.multiple(input$selectTypeMult,input$checkGroup, input$timeframePredict, input$slider3, .GlobalEnv)
+    if(input$selectTypeMult == "Crypto" | input$selectTypeMult == "Stocks"){
+      predict.tomorrow.multiple(input$selectTypeMult,input$checkGroup, input$timeframePredict, input$slider3, .GlobalEnv)
+    }else{
+      predict.next.bh.bl.tar(input$checkGroup, input$timeframePredict, input$slider3)
+    }
     dt.colored = datatable(predictions.df.comb,
                            rownames = FALSE,
                            extensions = c("Buttons","FixedHeader"),
@@ -898,6 +906,8 @@ server <- function(input, output, session) {
   observeEvent(input$timeframe,{
     if(input$timeframe == "15min" | input$timeframe == "1hour"){
       updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1)
+    }else if(input$timeframe == "2hour"){
+      updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.2, max = 2, step = 0.2, value = 0.2)
     }else{
       updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.2, max = 3, step = 0.2, value = 0.2)
     }
@@ -917,6 +927,13 @@ server <- function(input, output, session) {
                                                                        "8 Hour" = "8hour",
                                                                        "1 Day" = "1day"))
     }
+    if(input$selectType == "Forex"){
+      updateSelectInput(inputId = "select", label = "Pick a Forex Pair to Predict", choices = fx.pair.names)
+      updateSelectInput(inputId = "timeframe",label = "Pick a Timeframe", choices = list("1 Hour" = "1hour",
+                                                                                         "4 Hour" = "4hour",
+                                                                                         "8 Hour" = "8hour",
+                                                                                         "1 Day" = "1day"))
+    }
   })
   
   observeEvent(input$selectTypeMult, {
@@ -933,6 +950,26 @@ server <- function(input, output, session) {
                                                                                          "8 Hour" = "8hour",
                                                                                          "1 Day" = "1day"))
     }
+    if(input$selectTypeMult == "Forex"){
+      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Forex Pair to Predict", choices = fx.pair.names, options = list(maxItems = 5))
+      updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("1 Hour" = "1hour",
+                                                                                         "4 Hour" = "4hour",
+                                                                                         "8 Hour" = "8hour",
+                                                                                         "1 Day" = "1day"))
+    }
+  })
+  
+  observeEvent(input$selectTypeWeek, {
+    if(input$selectTypeWeek == "Forex"){
+      updateSelectInput(inputId = "selectNextWeek", label = "Pick a Forex Pair to Predict", choices = fx.pair.names)
+    }
+    if(input$selectTypeWeek == "Stocks"){
+      updateSelectInput(inputId = "selectNextWeek", label = "Pick a Stock to Predict", choices = stock.names)
+    }
+    if(input$selectTypeWeek == "Crypto"){
+      updateSelectInput(inputId = "selectNextWeek", label = "Pick a Crypto to Predict", choices = checkbox_list)
+    }
+    
   })
 
 }
