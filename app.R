@@ -11,7 +11,6 @@ library(shinyalert)
 library(binance)
 library(purrr)
 library(shinymanager)
-library(flexdashboard)
 library(fresh)
 
 mytheme <- create_theme(
@@ -152,30 +151,35 @@ ui <- secure_app(dashboardPage(
                        )
                 ),
                 column(width = 6,
-                box(width = NULL, title = "Backtest", status = "primary", solidHeader = TRUE,
-                  strong(h4("Variable Info:")),
-                  strong('Actual:'),
-                  paste0("If the next candle actually hit the target percentage increase, this will be 'HIT TARGET', otherwise 'MISSED TARGET'. ",
-                         "The color will be GREEN if a profit could have been made and RED if a loss could have been made."),
-                  br(),
-                  strong("Actual High:"),
-                  paste0("This was the next candles high"),
-                  br(),
-                  strong("Actual Low:"),
-                  paste0("This was the next candles low"),
-                  br(),
-                  strong("Actual Close:"),
-                  paste0("This was the next candles close"),
-                  br(),
-                  strong("Confidence Score:"),
-                  paste0("This is the confidence the model has that the next candle would reach the target percentage increase (on a scale of 0 to 1)"),
-                  br(),
-                  strong("Signal:"),
-                  paste0("If the 'Confidence Score' is higher than the selected prediction BUY threshold, this will be 'DID BUY', otherwise 'DIDN'T BUY'"),
-                  br(),
-                  br(),
-                  dataTableOutput("table1")
-                )
+                       box(title = "Additional Metrics", width = NULL, status = "primary", solidHeader = TRUE,
+                         valueBoxOutput(outputId = "precisionBox", width = 6),
+                         valueBoxOutput(outputId = "recallBox", width = 6),
+                         valueBoxOutput(outputId = "f1Box", width = 6)
+                       )
+                # box(width = NULL, title = "Backtest", status = "primary", solidHeader = TRUE,
+                #   strong(h4("Variable Info:")),
+                #   strong('Actual:'),
+                #   paste0("If the next candle actually hit the target percentage increase, this will be 'HIT TARGET', otherwise 'MISSED TARGET'. ",
+                #          "The color will be GREEN if a profit could have been made and RED if a loss could have been made."),
+                #   br(),
+                #   strong("Actual High:"),
+                #   paste0("This was the next candles high"),
+                #   br(),
+                #   strong("Actual Low:"),
+                #   paste0("This was the next candles low"),
+                #   br(),
+                #   strong("Actual Close:"),
+                #   paste0("This was the next candles close"),
+                #   br(),
+                #   strong("Confidence Score:"),
+                #   paste0("This is the confidence the model has that the next candle would reach the target percentage increase (on a scale of 0 to 1)"),
+                #   br(),
+                #   strong("Signal:"),
+                #   paste0("If the 'Confidence Score' is higher than the selected prediction BUY threshold, this will be 'DID BUY', otherwise 'DIDN'T BUY'"),
+                #   br(),
+                #   br(),
+                #   dataTableOutput("table1")
+                # )
               )
               )
       ),
@@ -327,7 +331,7 @@ ui <- secure_app(dashboardPage(
                     selectInput("selectTypeWeek", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
                                                                                            "Crypto" = "Crypto",
                                                                                            "Forex" = "Forex")),
-                    selectInput('selectTimeFrame', 'Select a time frame', choices = list('7 Days' = 'daily',
+                    selectInput('selectTimeFrame', 'Pick a Timeframe', choices = list('7 Days' = 'daily',
                                                                                          '7 Weeks' = 'weekly')),
                     selectInput('selectNextWeek', "Select a Coin", choices = checkbox_list),
                     actionButton("action5", "Predict"),
@@ -580,40 +584,50 @@ server <- function(input, output, session) {
     # output$OverallAccuracy = renderInfoBox({
     #   infoBox("Overall Accuracy",paste0(round(overall.accuracy, digits = 2), "%"), icon = icon('check'))
     #   })
-    output$Buy = renderInfoBox({infoBox("Profitable Trades", paste0(round(yes.buy.correct.perc, digits = 2), "%"), icon = icon("thumbs-up"))
+    output$precisionBox = renderValueBox({
+      valueBox(value = precision, subtitle = "Precision Score")
     })
-    output$SumPercentage = renderInfoBox({
-      infoBox("Sum Percentage", paste0(round(sum.percentage, digits = 2), "%"),icon = icon("money-bill-trend-up"))
-      })
-    # output$DontBuy = renderInfoBox({infoBox("'Don't Buy' Correct", paste0(round(no.buy.correct.perc, digits = 2),"%"),icon = icon("thumbs-down"))
-    #   })
-    output$Predictions = renderInfoBox({infoBox("Number of Predictions", paste0(nrow(compare)))
+    output$recallBox = renderValueBox({
+      valueBox(value = recall, subtitle = "Recall Score")
     })
-    output$Hits = renderInfoBox({infoBox("Number of BUYS", paste0(nrow(compare[compare$Signal == 'DID BUY',])))
+    output$f1Box = renderValueBox({
+      valueBox(value = f1, subtitle = "F1 Score")
     })
     
-    colnames(compare) = c('Actual', 'Actual High', 'Actual Low','Actual Close', 'Confidence Score', 'Signal', 'profit')
+    # output$Buy = renderInfoBox({infoBox("Profitable Trades", paste0(round(yes.buy.correct.perc, digits = 2), "%"), icon = icon("thumbs-up"))
+    # })
+    # output$SumPercentage = renderInfoBox({
+    #   infoBox("Sum Percentage", paste0(round(sum.percentage, digits = 2), "%"),icon = icon("money-bill-trend-up"))
+    #   })
+    # # output$DontBuy = renderInfoBox({infoBox("'Don't Buy' Correct", paste0(round(no.buy.correct.perc, digits = 2),"%"),icon = icon("thumbs-down"))
+    # #   })
+    # output$Predictions = renderInfoBox({infoBox("Number of Predictions", paste0(nrow(compare)))
+    # })
+    # output$Hits = renderInfoBox({infoBox("Number of BUYS", paste0(nrow(compare[compare$Signal == 'DID BUY',])))
+    # })
+    # 
+    # colnames(compare) = c('Actual', 'Actual High', 'Actual Low','Actual Close', 'Confidence Score', 'Signal', 'profit')
     
 
     
     
-    compare$`Actual High` = paste0(compare$`Actual High`,"%")
-    compare$`Actual Low` = paste0(compare$`Actual Low`,"%")
-    compare$`Actual Close` = paste0(compare$`Actual Close`,"%")
-    
-    compare$Signal[compare$Signal == 1] = "DID BUY"
-    compare$Signal[compare$Signal == 0] = "DIDN'T BUY"
-    
-    compare$Actual[compare$Actual == 0] = 'MISSED TARGET'
-    compare$Actual[compare$Actual == 1] = 'HIT TARGET'
-    
-    table1.colored = datatable(compare, rownames = FALSE, options = list(pageLength = 20,
-      columnDefs = list(list(targets = 6, visible = FALSE))
-    )) %>%
-      formatStyle('Actual','profit',
-                  backgroundColor = styleEqual(c(0,1), c('darkred','lightgreen'))) %>%
-      formatStyle('Signal',
-                  backgroundColor = styleEqual(c("DIDN'T BUY","DID BUY"), c('darkred','lightgreen')))
+    # compare$`Actual High` = paste0(compare$`Actual High`,"%")
+    # compare$`Actual Low` = paste0(compare$`Actual Low`,"%")
+    # compare$`Actual Close` = paste0(compare$`Actual Close`,"%")
+    # 
+    # compare$Signal[compare$Signal == 1] = "DID BUY"
+    # compare$Signal[compare$Signal == 0] = "DIDN'T BUY"
+    # 
+    # compare$Actual[compare$Actual == 0] = 'MISSED TARGET'
+    # compare$Actual[compare$Actual == 1] = 'HIT TARGET'
+    # 
+    # table1.colored = datatable(compare, rownames = FALSE, options = list(pageLength = 20,
+    #   columnDefs = list(list(targets = 6, visible = FALSE))
+    # )) %>%
+    #   formatStyle('Actual','profit',
+    #               backgroundColor = styleEqual(c(0,1), c('darkred','lightgreen'))) %>%
+    #   formatStyle('Signal',
+    #               backgroundColor = styleEqual(c("DIDN'T BUY","DID BUY"), c('darkred','lightgreen')))
 
     
       

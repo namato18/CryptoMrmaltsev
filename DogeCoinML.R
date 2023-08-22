@@ -104,10 +104,10 @@ getTimeRemaining = function(timeframe){
 
 createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Timeframe, TP=0){
   
-  # Symbol = 'AAPL'
-  # Timeframe = '15min'
-  # TargetIncreasePercent = "1"
-  # SuccessThreshold = '0.9'
+  # Symbol = 'BTCUSDT'
+  # Timeframe = '4hour'
+  # TargetIncreasePercent = "0.6"
+  # SuccessThreshold = '0.5'
   # df = readRDS(paste0("bsts/df_",'ETHUSD','4hour',".rds"))
   # sample.split = readRDS(paste0("bsts/sample.split_",'ETHUSD','4hour',"1",".rds"))
   # outcome = readRDS(paste0("bsts/outcome_",'ETHUSD','4hour',"1",".rds"))
@@ -130,25 +130,22 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
     
     # Predict
     predictions = predict(bst, test)
-    Actual.Percent.High = round((((df$High / df$Open) * 100) - 100), digits = 1)
-    Actual.Percent.Close = round((((df$Close / df$Open) * 100) - 100), digits = 1)
-    Actual.Percent.Low = round((((df$Low / df$Open) * 100) - 100), digits = 1)
-    compare = data.frame("Actual" = outcome.test,
-                         "Actual.Percent.High" = Actual.Percent.High[which(!sample.split) + 1],
-                         "Actual.Percent.Low" = Actual.Percent.Low[which(!sample.split) + 1],
-                         "Actual.Percent.Close" = Actual.Percent.Close[which(!sample.split) + 1],
-                         "Confidence.Score" = round(predictions, digits = 4),
-                         "Signal" = NA)
-  }else{
-    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_","AUDUSD","_","1hour","0.05",".rds"))
+    # Actual.Percent.High = round((((df$High / df$Open) * 100) - 100), digits = 1)
+    # Actual.Percent.Close = round((((df$Close / df$Open) * 100) - 100), digits = 1)
+    # Actual.Percent.Low = round((((df$Low / df$Open) * 100) - 100), digits = 1)
+    # compare = data.frame("Actual" = outcome.test,
+    #                      "Actual.Percent.High" = Actual.Percent.High[which(!sample.split) + 1],
+    #                      "Actual.Percent.Low" = Actual.Percent.Low[which(!sample.split) + 1],
+    #                      "Actual.Percent.Close" = Actual.Percent.Close[which(!sample.split) + 1],
+    #                      "Confidence.Score" = round(predictions, digits = 4),
+    #                      "Signal" = NA)
     
-    df = compare
+    df = data.frame(outcome.test, predictions)
     
     colnames(df) = c("outcome.test","pred")
     
     df$decision = 0
-    df$decision[df$pred >= 0.5] = 1
+    df$decision[df$pred >= SuccessThreshold] = 1
     
     true.pos = length(which(df$outcome.test == 1 & df$decision == 1))
     false.pos = length(which(df$outcome.test == 0 & df$decision == 1))
@@ -162,6 +159,37 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
     precision = round(precision, digits = 4)
     recall = round(recall, digits = 4)
     f1 = round(f1, digits = 4)
+    
+    assign("precision",precision,.GlobalEnv)
+    assign("recall",recall,.GlobalEnv)
+    assign("f1",f1,.GlobalEnv)
+  }else{
+    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_","AUDUSD","_","1hour","0.05",".rds"))
+    
+    df = compare
+    
+    colnames(df) = c("outcome.test","pred")
+    
+    df$decision = 0
+    df$decision[df$pred >= SuccessThreshold] = 1
+    
+    true.pos = length(which(df$outcome.test == 1 & df$decision == 1))
+    false.pos = length(which(df$outcome.test == 0 & df$decision == 1))
+    false.neg = length(which(df$outcome.test == 1 & df$decision == 0))
+    
+    
+    precision = true.pos / (true.pos + false.pos) * 100
+    recall = true.pos / (true.pos + false.neg) * 100
+    f1 = 2*((precision * recall)/(precision + recall))
+    
+    precision = round(precision, digits = 4)
+    recall = round(recall, digits = 4)
+    f1 = round(f1, digits = 4)
+    
+    assign("precision",precision,.GlobalEnv)
+    assign("recall",recall,.GlobalEnv)
+    assign("f1",f1,.GlobalEnv)
     
   }
 
@@ -177,84 +205,84 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
 
   
   
-  assign('train',train,.GlobalEnv)
-  
-
-  
-  # df$DBreakLow = NA
-  # df$BreakHigh = NA
+  # assign('train',train,.GlobalEnv)
   # 
-  # for(i in 2:(nrow(df)-1)){
-  #   if(df$Low[i] <= df$Low[i-1]){
-  #     df$DBreakLow[i+1] = 0
-  #   }else{
-  #     df$DBreakLow[i+1] = 1
-  #   }
   # 
-  #   if(df$High[i] >= df$High[i-1]){
-  #     df$BreakHigh[i+1] = 1
-  #   }else{
-  #     df$BreakHigh[i+1] = 0
-  #   }
+  # 
+  # # df$DBreakLow = NA
+  # # df$BreakHigh = NA
+  # # 
+  # # for(i in 2:(nrow(df)-1)){
+  # #   if(df$Low[i] <= df$Low[i-1]){
+  # #     df$DBreakLow[i+1] = 0
+  # #   }else{
+  # #     df$DBreakLow[i+1] = 1
+  # #   }
+  # # 
+  # #   if(df$High[i] >= df$High[i-1]){
+  # #     df$BreakHigh[i+1] = 1
+  # #   }else{
+  # #     df$BreakHigh[i+1] = 0
+  # #   }
+  # # }
+  # # 
+  # # DBreakLow.test = df$DBreakLow[which(!sample.split)]
+  # # BreakHigh.test = df$BreakHigh[which(!sample.split)]
+  # 
+  # 
+  # compare$Signal[compare$Confidence.Score >= SuccessThreshold] = 1
+  # compare$Signal[compare$Confidence.Score < SuccessThreshold] = 0
+  # 
+  # compare$profit = NA
+  # compare$profit[compare$Actual.Percent.High >= TargetIncreasePercent | compare$Actual.Percent.Close > 0] = 1
+  # compare$profit[compare$Actual.Percent.High < TargetIncreasePercent & compare$Actual.Percent.Close < 0] = 0
+  # 
+  # 
+  # 
+  # compare = na.omit(compare)
+  # 
+  # 
+  # accuracy = length(which(compare$Actual == compare$Signal)) / nrow(compare) * 100
+  # print(accuracy)
+  # 
+  # 
+  # if(TP == 0){
+  #   examine = compare[compare$Signal == 1, ]
+  #   accuracy2 = sum(as.numeric(as.character(examine$Actual.Percent.Close)))
+  #   print(accuracy2)
+  # }else{
+  #   
+  #   examine = compare[compare$Signal == 1, ]
+  #   winning.trades = examine[examine$Actual == 1,]
+  #   winning.trades$Actual.Percent.High[winning.trades$Actual.Percent.High > TP ] = TP
+  #   winning.trades.above = winning.trades[winning.trades$Actual.Percent.High == TP,]
+  #   winning.trades.below = winning.trades[winning.trades$Actual.Percent.High < TP,]
+  #   winning.sum.below = sum(as.numeric(as.character(winning.trades.below$Actual.Percent.Close)))
+  #   winning.sum.above = sum(as.numeric(as.character(winning.trades.above$Actual.Percent.High)))
+  #   winning.sum = winning.sum.above + winning.sum.below
+  #   # missed.trades = examine[examine$Actual == 0,]
+  #   # missed.trades$Actual.Percent.Close[missed.trades$Actual.Percent.Close < SL] = SL
+  #   # missed.sum = sum(as.numeric(as.character(missed.trades$Actual.Percent.Close)))
+  #   accuracy2 = winning.sum
+  #   # accuracy2 = sum(as.numeric(as.character(examine$Actual.Percent.Close)))
+  #   print(accuracy2)
   # }
   # 
-  # DBreakLow.test = df$DBreakLow[which(!sample.split)]
-  # BreakHigh.test = df$BreakHigh[which(!sample.split)]
-  
-  
-  compare$Signal[compare$Confidence.Score >= SuccessThreshold] = 1
-  compare$Signal[compare$Confidence.Score < SuccessThreshold] = 0
-  
-  compare$profit = NA
-  compare$profit[compare$Actual.Percent.High >= TargetIncreasePercent | compare$Actual.Percent.Close > 0] = 1
-  compare$profit[compare$Actual.Percent.High < TargetIncreasePercent & compare$Actual.Percent.Close < 0] = 0
-  
-  
-  
-  compare = na.omit(compare)
-  
-  
-  accuracy = length(which(compare$Actual == compare$Signal)) / nrow(compare) * 100
-  print(accuracy)
-  
-  
-  if(TP == 0){
-    examine = compare[compare$Signal == 1, ]
-    accuracy2 = sum(as.numeric(as.character(examine$Actual.Percent.Close)))
-    print(accuracy2)
-  }else{
-    
-    examine = compare[compare$Signal == 1, ]
-    winning.trades = examine[examine$Actual == 1,]
-    winning.trades$Actual.Percent.High[winning.trades$Actual.Percent.High > TP ] = TP
-    winning.trades.above = winning.trades[winning.trades$Actual.Percent.High == TP,]
-    winning.trades.below = winning.trades[winning.trades$Actual.Percent.High < TP,]
-    winning.sum.below = sum(as.numeric(as.character(winning.trades.below$Actual.Percent.Close)))
-    winning.sum.above = sum(as.numeric(as.character(winning.trades.above$Actual.Percent.High)))
-    winning.sum = winning.sum.above + winning.sum.below
-    # missed.trades = examine[examine$Actual == 0,]
-    # missed.trades$Actual.Percent.Close[missed.trades$Actual.Percent.Close < SL] = SL
-    # missed.sum = sum(as.numeric(as.character(missed.trades$Actual.Percent.Close)))
-    accuracy2 = winning.sum
-    # accuracy2 = sum(as.numeric(as.character(examine$Actual.Percent.Close)))
-    print(accuracy2)
-  }
-  
-  
-  yes.buy = compare[compare$Signal == 1, ]
-  yes.buy.above.zero = length(which(yes.buy$Actual == 0 & yes.buy$Actual.Percent.Close > 0))
-  yes.buy.correct.perc = (length(which(yes.buy$Signal == yes.buy$Actual)) + yes.buy.above.zero)  / nrow(yes.buy) * 100
-  
-  no.buy = compare[compare$Signal == 0, ]
-  no.buy.correct.perc = length(which(no.buy$Signal == no.buy$Actual)) / nrow(no.buy) * 100
-  
-  
-  assign('yes.buy.correct.perc',yes.buy.correct.perc,.GlobalEnv)
-  assign("no.buy.correct.perc",no.buy.correct.perc,.GlobalEnv)
-  # assign("overall.accuracy",accuracy,.GlobalEnv)
-  assign("compare",compare,.GlobalEnv)
-  assign("sum.percentage",accuracy2,.GlobalEnv)
-  assign('bst',bst,.GlobalEnv)
+  # 
+  # yes.buy = compare[compare$Signal == 1, ]
+  # yes.buy.above.zero = length(which(yes.buy$Actual == 0 & yes.buy$Actual.Percent.Close > 0))
+  # yes.buy.correct.perc = (length(which(yes.buy$Signal == yes.buy$Actual)) + yes.buy.above.zero)  / nrow(yes.buy) * 100
+  # 
+  # no.buy = compare[compare$Signal == 0, ]
+  # no.buy.correct.perc = length(which(no.buy$Signal == no.buy$Actual)) / nrow(no.buy) * 100
+  # 
+  # 
+  # assign('yes.buy.correct.perc',yes.buy.correct.perc,.GlobalEnv)
+  # assign("no.buy.correct.perc",no.buy.correct.perc,.GlobalEnv)
+  # # assign("overall.accuracy",accuracy,.GlobalEnv)
+  # assign("compare",compare,.GlobalEnv)
+  # assign("sum.percentage",accuracy2,.GlobalEnv)
+  # assign('bst',bst,.GlobalEnv)
 }
 
 
