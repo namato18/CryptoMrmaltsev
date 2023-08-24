@@ -104,7 +104,8 @@ getTimeRemaining = function(timeframe){
 
 createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Timeframe, TP=0){
   
-  # Symbol = 'BTCUSDT'
+  # Symbol = 'AUDUSD'
+  # Type = "Forex"
   # Timeframe = '4hour'
   # TargetIncreasePercent = "0.6"
   # SuccessThreshold = '0.5'
@@ -124,28 +125,39 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
     outcome.test = outcome[!sample.split]
     
     bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("bst_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-    # bst = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/bst_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-    
-    # bst = readRDS(paste0("bsts/bst_",'ETHUSD','4hour',1,".rds"))
+
     
     # Predict
     predictions = predict(bst, test)
-    # Actual.Percent.High = round((((df$High / df$Open) * 100) - 100), digits = 1)
-    # Actual.Percent.Close = round((((df$Close / df$Open) * 100) - 100), digits = 1)
-    # Actual.Percent.Low = round((((df$Low / df$Open) * 100) - 100), digits = 1)
-    # compare = data.frame("Actual" = outcome.test,
-    #                      "Actual.Percent.High" = Actual.Percent.High[which(!sample.split) + 1],
-    #                      "Actual.Percent.Low" = Actual.Percent.Low[which(!sample.split) + 1],
-    #                      "Actual.Percent.Close" = Actual.Percent.Close[which(!sample.split) + 1],
-    #                      "Confidence.Score" = round(predictions, digits = 4),
-    #                      "Signal" = NA)
+    Actual.Percent.High = round((((df$High / df$Open) * 100) - 100), digits = 1)
+    Actual.Percent.Close = round((((df$Close / df$Open) * 100) - 100), digits = 1)
+    Actual.Percent.Low = round((((df$Low / df$Open) * 100) - 100), digits = 1)
+    compare2 = data.frame("Actual" = outcome.test,
+                         "Actual.Percent.High" = Actual.Percent.High[which(!sample.split) + 1],
+                         "Actual.Percent.Low" = Actual.Percent.Low[which(!sample.split) + 1],
+                         "Actual.Percent.Close" = Actual.Percent.Close[which(!sample.split) + 1],
+                         "Confidence.Score" = round(predictions, digits = 4),
+                         "Signal" = NA)
+    
+    compare2$Signal[compare2$Confidence.Score >= SuccessThreshold] = 1
+    compare2$Signal[compare2$Confidence.Score < SuccessThreshold] = 0
+    
+    
+    compare2$profit = NA
+    compare2$profit[compare2$Actual.Percent.High >= TargetIncreasePercent | compare2$Actual.Percent.Close > 0] = 1
+    compare2$profit[compare2$Actual.Percent.High < TargetIncreasePercent & compare2$Actual.Percent.Close < 0] = 0
+    
+    compare2 = na.omit(compare2)
+    
+    assign("compare2",compare2,.GlobalEnv)
     
     df = data.frame(outcome.test, predictions)
     
     colnames(df) = c("outcome.test","pred")
-    
+
     df$decision = 0
     df$decision[df$pred >= SuccessThreshold] = 1
+    assign('compare',df,.GlobalEnv)
     
     true.pos = length(which(df$outcome.test == 1 & df$decision == 1))
     false.pos = length(which(df$outcome.test == 0 & df$decision == 1))
@@ -154,7 +166,7 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
     
     precision = true.pos / (true.pos + false.pos) * 100
     recall = true.pos / (true.pos + false.neg) * 100
-    f1 = 2*((precision * recall)/(precision + recall))
+    f1 = 2*((precision * recall)/(precision + recall)) / 100
     
     precision = round(precision, digits = 4)
     recall = round(recall, digits = 4)
@@ -164,15 +176,52 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
     assign("recall",recall,.GlobalEnv)
     assign("f1",f1,.GlobalEnv)
   }else{
+    df = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("df_",Symbol,"_",Timeframe,".rds"))
+    sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("sample.split_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+    outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("outcome_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+    test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("test_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+    
+    outcome.train = outcome[sample.split]
+    outcome.test = outcome[!sample.split]
+    
+    bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
+    
+    
+    # Predict
+    predictions = predict(bst, test)
+    Actual.Percent.High = round((((df$High / df$Open) * 100) - 100), digits = 1)
+    Actual.Percent.Close = round((((df$Close / df$Open) * 100) - 100), digits = 1)
+    Actual.Percent.Low = round((((df$Low / df$Open) * 100) - 100), digits = 1)
+    compare2 = data.frame("Actual" = outcome.test,
+                          "Actual.Percent.High" = Actual.Percent.High[which(!sample.split) + 1],
+                          "Actual.Percent.Low" = Actual.Percent.Low[which(!sample.split) + 1],
+                          "Actual.Percent.Close" = Actual.Percent.Close[which(!sample.split) + 1],
+                          "Confidence.Score" = round(predictions, digits = 4),
+                          "Signal" = NA)
+    
+    compare2$Signal[compare2$Confidence.Score >= SuccessThreshold] = 1
+    compare2$Signal[compare2$Confidence.Score < SuccessThreshold] = 0
+    
+    
+    compare2$profit = NA
+    compare2$profit[compare2$Actual.Percent.High >= TargetIncreasePercent | compare2$Actual.Percent.Close > 0] = 1
+    compare2$profit[compare2$Actual.Percent.High < TargetIncreasePercent & compare2$Actual.Percent.Close < 0] = 0
+    
+    compare2 = na.omit(compare2)
+    
+    assign("compare2",compare2,.GlobalEnv)
     compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
-    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_","AUDUSD","_","1hour","0.05",".rds"))
+    # compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_","AUDUSD","_","8hour","0.05",".rds"))
+    # SuccessThreshold = 0.5
     
     df = compare
     
     colnames(df) = c("outcome.test","pred")
     
+    
     df$decision = 0
     df$decision[df$pred >= SuccessThreshold] = 1
+    assign('compare',df,.GlobalEnv)
     
     true.pos = length(which(df$outcome.test == 1 & df$decision == 1))
     false.pos = length(which(df$outcome.test == 0 & df$decision == 1))
@@ -181,7 +230,7 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
     
     precision = true.pos / (true.pos + false.pos) * 100
     recall = true.pos / (true.pos + false.neg) * 100
-    f1 = 2*((precision * recall)/(precision + recall))
+    f1 = 2*((precision * recall)/(precision + recall)) / 100
     
     precision = round(precision, digits = 4)
     recall = round(recall, digits = 4)
@@ -192,7 +241,7 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
     assign("f1",f1,.GlobalEnv)
     
   }
-
+  
   # train = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts", object = paste0("train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
   
   
@@ -202,7 +251,7 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
   # test = readRDS(paste0("C:/Users/xbox/Desktop/Rstuff/bsts-7-18-2023/test_",Symbol,"_",Timeframe,TargetIncreasePercent,".rds"))
   # train = readRDS(paste0("bsts/train_",Symbol,Timeframe,TargetIncreasePercent,".rds"))
   
-
+  
   
   
   # assign('train',train,.GlobalEnv)
@@ -620,18 +669,18 @@ predict.tomorrow.multiple <- function(Type,Symbols, Timeframe, SuccessThreshold,
     
     ###############################
     ############################### DEFINE OTHER INPUT VALUES
-    df$OH = (df$High - df$Open)/df$High * 100
-    df$CH = (df$Close - df$Open)/ df$Close * 100
-    df$LH = (df$High - df$Low) / df$High * 100
+    df$OH = (df$High - df$Open)/df$Open * 100
+    df$CH = (df$Close - df$Open)/ df$Open * 100
+    df$LH = (df$High - df$Low) / df$Low * 100
     df$LC = (df$Close - df$Low) / df$Low * 100
     
-    df$HMA = (df$High - df$MA20)/ df$High * 100
-    df$LMA = (df$Low - df$MA20)/ df$Low * 100
-    df$CMA = (df$Close - df$MA20)/ df$Close * 100
-    df$VMA = (df$Volume - df$VMA20) / df$Volume * 100
+    df$HMA = (df$High - df$MA20)/ df$MA20 * 100
+    df$LMA = (df$Low - df$MA20)/ df$MA20 * 100
+    df$CMA = (df$Close - df$MA20)/ df$MA20 * 100
+    df$VMA = (df$Volume - df$VMA20) / df$VMA20 * 100
     
     lag1Vol = Lag(df$Volume, 1)
-    df$VolumeD = (df$Volume - lag1Vol)/df$Volume * 100
+    df$VolumeD = (df$Volume - lag1Vol)/lag1Vol * 100
     
     ###############################
     ############################### DETERMINE OUTCOME VALUES
@@ -1330,8 +1379,7 @@ predict.next.ohlc = function(symbol, output){
 ##############################################################
 
 predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
-  pair = symbol
-  timeframe = str_match(string = symbol, pattern = "_(.*)")[,2]
+
   
   predictions.df.comb = data.frame("Coin" = character(),
                                    "Price Change" = character(),
@@ -1342,159 +1390,204 @@ predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
                                    "C.Score.BreakPrevoiusLow" = character(),
                                    "Previous.High" = character(),
                                    "Signal" = character())
-  
-  predictions = c("BreakH","BreakL","Target")
-  for(i in 1:length(predictions)){
-    prediction = predictions[i]
-    
-    # symbol = "AUDUSD_1day"
-    # prediction = "BreakL"
-    pair = "AUDUSD"
-    timeframe = "1day"
-    
-    df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = timeframe)
-    df1 = df1[-nrow(df1),]
-    df2 = httr::GET(paste0("https://api.tiingo.com/tiingo/fx/",pair,"/prices?resampleFreq=",timeframe,"&token=6fbd6ce7c9e035489f6238bfab127fcedbe34ac2"))
-    request_char = rawToChar(df2$content)
-    request_json = jsonlite::fromJSON(request_char, flatten = TRUE)
-    df2 = request_json
-    
-    df2$date = str_replace(string = df2$date, pattern = "T", replacement = " ")
-    df2$date = str_replace(string = df2$date, pattern = "Z", replacement = "")
-    df2$date = as.POSIXct(df2$date, format = "%Y-%m-%d %H:%M:%S")
-    df2 = df2[,c(2,1,3:6)]
-    
-    df = rbind(df1,df2)
-    
-    df = df[,-1]
-    
-    ###############################
-    ############################### CHANGE NAMES
-    colnames(df) = c("Date","Open","High","Low","Close")
-    
-    
-    ###############################
-    ############################### ADD IN MOVING AVERAGES
-    df$MA10 = NA
-    df$MA20 = NA
-    
-    for(k in 21:nrow(df)){
-      df$MA10[k] = mean(df$Close[k-10:k])
-      df$MA20[k] = mean(df$Close[k-20:k])
-    }
-    
-    ###############################
-    ############################### DEFINE OTHER INPUT VALUES
-    df$OH = (df$High - df$Open)/df$High * 100
-    df$CH = (df$Close - df$Open)/ df$Close * 100
-    df$LH = (df$High - df$Low) / df$High * 100
-    df$LC = (df$Close - df$Low) / df$Low * 100
-    
-    df$HMA = (df$High - df$MA20)/ df$High * 100
-    df$LMA = (df$Low - df$MA20)/ df$Low * 100
-    df$CMA = (df$Close - df$MA20)/ df$Close * 100
-    
-    if(grepl(pattern = "day", x = timeframe)){
-      df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d")
-    }else{
-      df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
-    }
-    df.xts = as.xts(df)
-    UpTrend = as.data.frame(up.trend(df.xts))$`Up Trend`
-    DownTrend = as.data.frame(down.trend(df.xts))$`Down Trend`
-    
-    df$UpTrend = as.numeric(UpTrend)
-    df$DownTrend = as.numeric(DownTrend)
-    
-    Previous1 = rep(0, nrow(df))
-    Previous1[df$Close > df$Open] = 1
-    Previous2 = Lag(Previous1, 1)
-    Previous3 = Lag(Previous1, 2)
-    
-    df$Previous1 = Previous1
-    df$Previous2 = Previous2
-    df$Previous3 = Previous3
-    
-    ###############################
-    ############################### DETERMINE OUTCOME VALUES
-    BreakL = NA
-    BreakH = NA
-    
-    for(k in 2:(nrow(df))){
-      if(df$Low[k] <= df$Low[k-1]){
-        BreakL[k] = 1
-      }else{
-        BreakL[k] = 0
+  for(j in 1:length(symbol)){
+    pair = symbol[j]
+
+    predictions = c("BreakH","BreakL","Target")
+    for(i in 1:length(predictions)){
+      prediction = predictions[i]
+      
+      # symbol = "AUDUSD_1day"
+      # prediction = "BreakL"
+      # pair = "AUDUSD"
+      # timeframe = "1day"
+      
+      df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = timeframe)
+      df1 = df1[-nrow(df1),]
+      df2 = httr::GET(paste0("https://api.tiingo.com/tiingo/fx/",pair,"/prices?resampleFreq=",timeframe,"&token=6fbd6ce7c9e035489f6238bfab127fcedbe34ac2"))
+      request_char = rawToChar(df2$content)
+      request_json = jsonlite::fromJSON(request_char, flatten = TRUE)
+      df2 = request_json
+      
+      df2$date = str_replace(string = df2$date, pattern = "T", replacement = " ")
+      df2$date = str_replace(string = df2$date, pattern = "Z", replacement = "")
+      df2$date = as.POSIXct(df2$date, format = "%Y-%m-%d %H:%M:%S")
+      df2 = df2[,c(2,1,3:6)]
+      
+      df = rbind(df1,df2)
+      
+      df = df[,-1]
+      
+      ###############################
+      ############################### CHANGE NAMES
+      colnames(df) = c("Date","Open","High","Low","Close")
+      
+      df_candle_plot = tail(df,30) %>%
+        plot_ly(x = ~Date, type="candlestick",
+                open = ~Open, close = ~Close,
+                high = ~High, low = ~Low)
+      df_candle_plot = df_candle_plot %>% layout(title = paste0('Last 30 candles for ',toupper(pair)),
+                                                 xaxis = list(rangeslider = list(visible = F)))
+      
+      assign(paste0('df_candleplot_',pair),df_candle_plot,.GlobalEnv)
+      ###############################
+      ############################### ADD IN MOVING AVERAGES
+      df$MA10 = NA
+      df$MA20 = NA
+      
+      for(k in 21:nrow(df)){
+        df$MA10[k] = mean(df$Close[k-10:k])
+        df$MA20[k] = mean(df$Close[k-20:k])
       }
       
-      if(df$High[k] >= df$High[k-1]){
-        BreakH[k] = 1
+      ###############################
+      ############################### DEFINE OTHER INPUT VALUES
+      df$OH = (df$High - df$Open)/df$High * 100
+      df$CH = (df$Close - df$Open)/ df$Close * 100
+      df$LH = (df$High - df$Low) / df$High * 100
+      df$LC = (df$Close - df$Low) / df$Low * 100
+      
+      df$HMA = (df$High - df$MA20)/ df$High * 100
+      df$LMA = (df$Low - df$MA20)/ df$Low * 100
+      df$CMA = (df$Close - df$MA20)/ df$Close * 100
+      
+      if(grepl(pattern = "day", x = timeframe)){
+        df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d")
       }else{
-        BreakH[k] = 0
+        df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
       }
-    }
-    
-    BreakH = c(BreakH, NA)
-    BreakH = BreakH[-1]
-    
-    BreakL = c(BreakL, NA)
-    BreakL = BreakL[-1]
-    
-    ###############################
-    ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
-    df = df[nrow(df)-1,]
-    
-    previous.low = df$Low
-    previous.high = df$High
-    previous.open = df$Open
-    previous.close = df$Close
-    
-    df = df[,-c(1:5)]
-    BreakL = BreakL[-c(1:20,length(BreakL))]
-    BreakH = BreakH[-c(1:20,length(BreakH))]
-    
-    
-    ###############################
-    ############################### ROUND ALL INPUTS TO 2 DIGITS
-    df = round(df, 2)
-    
-    df = as.matrix(df)
-    
-    predictions.df.pos = data.frame("Coin" = rep(toupper(pair),5),
-                                    "Price Change" = seq(from= 0.05, to = 0.25, by=0.05),
-                                    "C.Score.HIT.TARGET" = rep(NA,5),
-                                    "C.Score.MISS.TARGET" = rep(NA,5),
-                                    "C.Score.BreakPrevoiusHigh" = rep(NA,5),
-                                    "Previous.High" = rep(NA,5),
-                                    "C.Score.BreakPrevoiusLow" = rep(NA,5),
-                                    "Previous.Low" = rep(NA,5),
-                                    "Signal" = rep("DON'T BUY SIGNAL",5))
-    predictions.pos = c()
-    
-    if(prediction == "BreakH" | prediction == "BreakL"){
-      bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",pair,"_",timeframe,"_",prediction,".rds"))
-      pred = predict(bst, df)
-      assign(paste0("pred_",prediction),pred,.GlobalEnv)
-    }else{
-      for(j in seq(from= 0.05, to = 0.25, by=0.05)){
-        bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",pair,"_",timeframe,j,".rds"))
+      df.xts = as.xts(df)
+      UpTrend = as.data.frame(up.trend(df.xts))$`Up Trend`
+      DownTrend = as.data.frame(down.trend(df.xts))$`Down Trend`
+      
+      df$UpTrend = as.numeric(UpTrend)
+      df$DownTrend = as.numeric(DownTrend)
+      
+      Previous1 = rep(0, nrow(df))
+      Previous1[df$Close > df$Open] = 1
+      Previous2 = Lag(Previous1, 1)
+      Previous3 = Lag(Previous1, 2)
+      
+      df$Previous1 = Previous1
+      df$Previous2 = Previous2
+      df$Previous3 = Previous3
+      
+      ###############################
+      ############################### DETERMINE OUTCOME VALUES
+      BreakL = NA
+      BreakH = NA
+      
+      for(k in 2:(nrow(df))){
+        if(df$Low[k] <= df$Low[k-1]){
+          BreakL[k] = 1
+        }else{
+          BreakL[k] = 0
+        }
+        
+        if(df$High[k] >= df$High[k-1]){
+          BreakH[k] = 1
+        }else{
+          BreakH[k] = 0
+        }
+      }
+      
+      BreakH = c(BreakH, NA)
+      BreakH = BreakH[-1]
+      
+      BreakL = c(BreakL, NA)
+      BreakL = BreakL[-1]
+      
+      ###############################
+      ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
+      df = df[nrow(df)-1,]
+      
+      previous.low = df$Low
+      previous.high = df$High
+      previous.open = df$Open
+      previous.close = df$Close
+      
+      df = df[,-c(1:5)]
+      BreakL = BreakL[-c(1:20,length(BreakL))]
+      BreakH = BreakH[-c(1:20,length(BreakH))]
+      
+      
+      ###############################
+      ############################### ROUND ALL INPUTS TO 2 DIGITS
+      df = round(df, 2)
+      
+      df = as.matrix(df)
+      
+      predictions.df.pos = data.frame("Coin" = rep(toupper(pair),5),
+                                      "Price Change" = seq(from= 0.05, to = 0.25, by=0.05),
+                                      "C.Score.HIT.TARGET" = rep(NA,5),
+                                      "C.Score.MISS.TARGET" = rep(NA,5),
+                                      "C.Score.BreakPrevoiusHigh" = rep(NA,5),
+                                      "Previous.High" = rep(NA,5),
+                                      "C.Score.BreakPrevoiusLow" = rep(NA,5),
+                                      "Previous.Low" = rep(NA,5),
+                                      "Signal" = rep("DON'T BUY SIGNAL",5))
+      
+      predictions.df.neg = data.frame("Coin" = rep(toupper(pair),5),
+                                      "Price Change" = seq(from= -0.25, to = -0.05, by=0.05),
+                                      "C.Score.HIT.TARGET" = rep(NA,5),
+                                      "C.Score.MISS.TARGET" = rep(NA,5),
+                                      "C.Score.BreakPrevoiusHigh" = rep(NA,5),
+                                      "Previous.High" = rep(NA,5),
+                                      "C.Score.BreakPrevoiusLow" = rep(NA,5),
+                                      "Previous.Low" = rep(NA,5),
+                                      "Signal" = rep("DON'T BUY SIGNAL",5))
+      predictions.pos = c()
+      predictions.neg = c()
+      
+      if(prediction == "BreakH" | prediction == "BreakL"){
+        bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",pair,"_",timeframe,"_",prediction,".rds"))
         pred = predict(bst, df)
-        predictions.pos = c(predictions.pos, pred)
+        assign(paste0("pred_",prediction),pred,.GlobalEnv)
+      }else{
+        for(j in seq(from= 0.05, to = 0.25, by=0.05)){
+          bst.pos = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",pair,"_",timeframe,j,".rds"))
+          bst.neg = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",pair,"_",timeframe,-j,".rds"))
+          pred.pos = predict(bst.pos, df)
+          pred.neg = predict(bst.neg, df)
+          predictions.pos = c(predictions.pos, pred.pos)
+          predictions.neg = c(predictions.neg, pred.neg)
+        }
       }
     }
+    # POSITIVE
+    predictions.df.pos$Price.Change = paste0(predictions.df.pos$Price.Change, "%")
+    
+    predictions.df.pos$C.Score.HIT.TARGET = round(predictions.pos, 3)
+    predictions.df.pos$C.Score.MISS.TARGET = round(1 - predictions.pos, 3)
+    
+    predictions.df.pos$C.Score.BreakPrevoiusHigh = round(pred_BreakH, 3)
+    predictions.df.pos$Previous.High = round(previous.high, 3)
+    
+    predictions.df.pos$C.Score.BreakPrevoiusLow = round(pred_BreakL, 3)
+    predictions.df.pos$Previous.Low = round(previous.low, 3)
+    
+    predictions.df.pos$Signal[predictions.df.pos$C.Score.HIT.TARGET >= success.thresh] = "BUY SIGNAL"
+    
+    predictions.df.pos[nrow(predictions.df.pos)+1,] = NA
+    
+    # NEGATIVE
+    predictions.df.neg$Price.Change = paste0(predictions.df.neg$Price.Change, "%")
+    
+    predictions.df.neg$C.Score.HIT.TARGET = round(predictions.neg, 3)
+    predictions.df.neg$C.Score.MISS.TARGET = round(1 - predictions.neg, 3)
+    
+    predictions.df.neg$C.Score.BreakPrevoiusHigh = round(pred_BreakH, 3)
+    predictions.df.neg$Previous.High = round(previous.high, 3)
+    
+    predictions.df.neg$C.Score.BreakPrevoiusLow = round(pred_BreakL, 3)
+    predictions.df.neg$Previous.Low = round(previous.low, 3)
+    
+    predictions.df.neg$Signal[predictions.df.neg$C.Score.HIT.TARGET >= success.thresh] = "BUY SIGNAL"
+    
+    # COMBINED
+    predictions.df.comb = data.frame(rbind(predictions.df.comb,predictions.df.neg,predictions.df.pos))
+    
   }
-  predictions.df.pos$C.Score.HIT.TARGET = predictions.pos
-  predictions.df.pos$C.Score.MISS.TARGET = 1 - predictions.pos
-  
-  predictions.df.pos$C.Score.BreakPrevoiusHigh = pred_BreakH
-  predictions.df.pos$Previous.High = previous.high
-  
-  predictions.df.pos$C.Score.BreakPrevoiusLow = pred_BreakL
-  predictions.df.pos$Previous.Low = previous.low
-  
-  predictions.df.pos$Signal[predictions.df.pos$C.Score.HIT.TARGET >= success.thresh] = "BUY SIGNAL"
-  
-  predictions.df.comb = predictions.df.pos
   assign("predictions.df.comb", predictions.df.comb, .GlobalEnv)
   
 }

@@ -12,6 +12,7 @@ library(binance)
 library(purrr)
 library(shinymanager)
 library(fresh)
+library(shinybusy)
 
 mytheme <- create_theme(
   adminlte_color(
@@ -58,6 +59,7 @@ possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
 
 # Define UI
 ui <- secure_app(dashboardPage(
+  title = "MLModel",
   dashboardHeader(title = shinyDashboardLogo(
     theme = "poor_mans_flatly",
     boldText = "Markets",
@@ -88,6 +90,7 @@ ui <- secure_app(dashboardPage(
     tabItems(
       tabItem(tabName = "create",
               fluidPage(
+                add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
                 # setBackgroundColor(color="black",shinydashboard = TRUE),
                 # setBackgroundImage(src = "green2.jpg",shinydashboard = TRUE),
                 # verbatimTextOutput("auth_output"),
@@ -122,7 +125,7 @@ ui <- secure_app(dashboardPage(
                          selectInput("select","Pick a crypto to predict", choices = checkbox_list),
                          br(),
                          sliderInput("slider1","Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1),
-                         sliderInput("slider2", "Confidence Score 'BUY' Threshold", min = 0.1, max = 1, step = 0.02, value = 0.9),
+                         sliderInput("slider2", "Confidence Score 'BUY' Threshold", min = 0.1, max = 1, step = 0.02, value = 0.5),
                          # strong("Note: IT IS STRONGLY RECOMMENDED TO PLACE YOUR TAKE PROFIT TO THE SAME VALUE AS YOUR TARGET PERCENTAGE INCREASE"),
                          # br(),
                          # paste0("Metrics by default are calculated based on the candles closing value. ",
@@ -135,52 +138,69 @@ ui <- secure_app(dashboardPage(
                          br(),
                          br()
                        ),
-                       box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
-                         # infoBoxOutput("OverallAccuracy", width = 6),
-                         infoBoxOutput("Buy", width = 6),
-                         infoBoxOutput("SumPercentage", width = 6),
-                         # infoBoxOutput("DontBuy", width = 6),
-                         infoBoxOutput("Predictions", width = 6),
-                         infoBoxOutput("Hits", width = 6)
-                         
-                       ),
                        box(title = "Histogram", width = NULL, status = "primary", solidHeader = TRUE,
-                         paste0("Ideally, we'd like there to be a near 0 probability or a near 1 probability for all predictions. ",
-                                "Values that are more in the middle can give us an unclear prediction."),
-                         plotOutput("modelPlot")
+                           paste0("Ideally, we'd like there to be a near 0 probability or a near 1 probability for all predictions. ",
+                                  "Values that are more in the middle can give us an unclear prediction."),
+                           plotOutput("modelPlot")
                        )
+                       # box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
+                       #   # infoBoxOutput("OverallAccuracy", width = 6),
+                       #   infoBoxOutput("Buy", width = 6),
+                       #   infoBoxOutput("SumPercentage", width = 6),
+                       #   # infoBoxOutput("DontBuy", width = 6),
+                       #   infoBoxOutput("Predictions", width = 6),
+                       #   infoBoxOutput("Hits", width = 6)
+                       #   
+                       # ),
                 ),
                 column(width = 6,
-                       box(title = "Additional Metrics", width = NULL, status = "primary", solidHeader = TRUE,
-                         valueBoxOutput(outputId = "precisionBox", width = 6),
-                         valueBoxOutput(outputId = "recallBox", width = 6),
-                         valueBoxOutput(outputId = "f1Box", width = 6)
+                       box(title = "Metric Descriptions", width = NULL, status = "primary", solidHeader = TRUE,
+                         strong("Precision: "),paste0("A measure of how accurate the model is at hitting it's target when it gives a buy signal.",
+                                                      " The equation goes as: (true positives) / (true positives + false positives)"),
+                         br(),
+                         br(),
+                         strong("Recall: "),paste0("A measure of what percentage of buy signals WERE classified correctly compared to how many SHOULD have been classified as a buy signal",
+                                                   " The equation goes as: (true positives) / (true positives + false negatives)"),
+                         br(),
+                         br(),
+                         strong("F1 Score: "),paste0("A value from 0 to 1, 1 being the model classifies every observation correctly. The equation goes as: 2 * (precision * recall) / (precision + recall)")
+                       ),
+                       box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
+                         valueBoxOutput(outputId = "precisionBox", width = 12),
+                         # valueBoxOutput(outputId = "recallBox", width = 6),
+                         # valueBoxOutput(outputId = "f1Box", width = 4),
+                         valueBoxOutput(outputId = "totalData", width = 6),
+                         valueBoxOutput(outputId = "predictedHits", width = 6)
+                         
+                       ),
+                       box(width = NULL, title = "Backtest", status = "primary", solidHeader = TRUE,
+                           strong(h4("Variable Info:")),
+                           strong('Actual:'),
+                           paste0("If the next candle actually hit the target percentage increase, this will be 'HIT TARGET', otherwise 'MISSED TARGET'. ",
+                                  "The color will be GREEN if a profit could have been made and RED if a loss could have been made."),
+                           br(),
+                           strong("Actual High:"),
+                           paste0("This was the next candles high"),
+                           br(),
+                           strong("Actual Low:"),
+                           paste0("This was the next candles low"),
+                           br(),
+                           strong("Actual Close:"),
+                           paste0("This was the next candles close"),
+                           br(),
+                           strong("Confidence Score:"),
+                           paste0("This is the confidence the model has that the next candle would reach the target percentage increase (on a scale of 0 to 1)"),
+                           br(),
+                           strong("Signal:"),
+                           paste0("If the 'Confidence Score' is higher than the selected prediction BUY threshold, this will be 'DID BUY', otherwise 'DIDN'T BUY'"),
+                           br(),
+                           br(),
+                           dataTableOutput("table1")
                        )
-                # box(width = NULL, title = "Backtest", status = "primary", solidHeader = TRUE,
-                #   strong(h4("Variable Info:")),
-                #   strong('Actual:'),
-                #   paste0("If the next candle actually hit the target percentage increase, this will be 'HIT TARGET', otherwise 'MISSED TARGET'. ",
-                #          "The color will be GREEN if a profit could have been made and RED if a loss could have been made."),
-                #   br(),
-                #   strong("Actual High:"),
-                #   paste0("This was the next candles high"),
-                #   br(),
-                #   strong("Actual Low:"),
-                #   paste0("This was the next candles low"),
-                #   br(),
-                #   strong("Actual Close:"),
-                #   paste0("This was the next candles close"),
-                #   br(),
-                #   strong("Confidence Score:"),
-                #   paste0("This is the confidence the model has that the next candle would reach the target percentage increase (on a scale of 0 to 1)"),
-                #   br(),
-                #   strong("Signal:"),
-                #   paste0("If the 'Confidence Score' is higher than the selected prediction BUY threshold, this will be 'DID BUY', otherwise 'DIDN'T BUY'"),
-                #   br(),
-                #   br(),
-                #   dataTableOutput("table1")
-                # )
+
               )
+              
+
               )
       ),
       # tabItem(tabName = "predict",
@@ -207,6 +227,7 @@ ui <- secure_app(dashboardPage(
       #         ),
       tabItem(tabName = "predictMultiple",
               fluidRow(
+                add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
                 img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 box(title = "Predict Next Candle (Multiple):", status = "primary", solidHeader = TRUE,width = 10,
                 paste0("On this tab you can generate predictions for multiple coins! Simply use the check boxes to select which coins you'd like to predict.",
@@ -228,7 +249,7 @@ ui <- secure_app(dashboardPage(
                                                                                       "4 Hour" = "4hour",
                                                                                       "8 Hour" = "8hour",
                                                                                       "1 Day" = "1day")),
-                    sliderInput("slider3", "Select Prediction 'BUY' Threshold", min = 0.1, max = 1, step = 0.05, value = 0.9),
+                    sliderInput("slider3", "Select Prediction 'BUY' Threshold", min = 0.1, max = 1, step = 0.05, value = 0.5),
                     actionButton("action4","Predict"),
                     br(),
                     br(),
@@ -275,6 +296,7 @@ ui <- secure_app(dashboardPage(
 
       tabItem(tabName = "inputCoin",
               fluidRow(
+                add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
                 img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 strong(h1("Generate Model using TradingView Data:")),
                 box(width = 10,
@@ -320,6 +342,7 @@ ui <- secure_app(dashboardPage(
       
       tabItem(tabName = "predictNextWeek",
               fluidRow(
+                add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
                 img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 box(title = "Predict Next 7 Days/Weeks:", status = "primary", solidHeader = TRUE,width = 10,
                 paste0("On this tab you may pick a crypto to forecast for the next 7 days/weeks! The machine learning model utilizes the past 14 candles of data ",
@@ -349,6 +372,7 @@ ui <- secure_app(dashboardPage(
       
       tabItem(tabName = "binance",
               fluidRow(
+                
                 img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 strong(h1("Binance Integration")),
                 box(width=10,
@@ -580,20 +604,29 @@ server <- function(input, output, session) {
   observeEvent(input$action1, {
     showModal(modalDialog("Generating Your Model...", footer = NULL))
     on.exit(removeModal())
-    createModel(input$selectType,input$slider1, input$slider2, input$select, input$timeframe, input$slider1)
+    if(input$slider1 == 0){
+      
+    }else{
+      createModel(input$selectType,input$slider1, input$slider2, input$select, input$timeframe, input$slider1)
+    }
     # output$OverallAccuracy = renderInfoBox({
     #   infoBox("Overall Accuracy",paste0(round(overall.accuracy, digits = 2), "%"), icon = icon('check'))
     #   })
     output$precisionBox = renderValueBox({
-      valueBox(value = precision, subtitle = "Precision Score")
+      valueBox(value = paste0(precision,"%"), subtitle = "Precision Score", icon = icon("bullseye"))
     })
-    output$recallBox = renderValueBox({
-      valueBox(value = recall, subtitle = "Recall Score")
+    # output$recallBox = renderValueBox({
+    #   valueBox(value = paste0(recall,"%"), subtitle = "Recall Score", icon = icon("circle-xmark"))
+    # })
+    # output$f1Box = renderValueBox({
+    #   valueBox(value = f1, subtitle = "F1 Score", icon = icon("check"))
+    # })
+    output$totalData = renderValueBox({
+      valueBox(value = nrow(compare), subtitle = "Number of Candles Backtested", icon = icon("vials"))
     })
-    output$f1Box = renderValueBox({
-      valueBox(value = f1, subtitle = "F1 Score")
+    output$predictedHits = renderValueBox({
+      valueBox(value = nrow(compare[compare$decision == 1,]), subtitle = "Predicted Buy Signals", icon = icon("vials"))
     })
-    
     # output$Buy = renderInfoBox({infoBox("Profitable Trades", paste0(round(yes.buy.correct.perc, digits = 2), "%"), icon = icon("thumbs-up"))
     # })
     # output$SumPercentage = renderInfoBox({
@@ -611,29 +644,31 @@ server <- function(input, output, session) {
 
     
     
-    # compare$`Actual High` = paste0(compare$`Actual High`,"%")
-    # compare$`Actual Low` = paste0(compare$`Actual Low`,"%")
-    # compare$`Actual Close` = paste0(compare$`Actual Close`,"%")
-    # 
-    # compare$Signal[compare$Signal == 1] = "DID BUY"
-    # compare$Signal[compare$Signal == 0] = "DIDN'T BUY"
-    # 
-    # compare$Actual[compare$Actual == 0] = 'MISSED TARGET'
-    # compare$Actual[compare$Actual == 1] = 'HIT TARGET'
-    # 
-    # table1.colored = datatable(compare, rownames = FALSE, options = list(pageLength = 20,
-    #   columnDefs = list(list(targets = 6, visible = FALSE))
-    # )) %>%
-    #   formatStyle('Actual','profit',
-    #               backgroundColor = styleEqual(c(0,1), c('darkred','lightgreen'))) %>%
-    #   formatStyle('Signal',
-    #               backgroundColor = styleEqual(c("DIDN'T BUY","DID BUY"), c('darkred','lightgreen')))
+    compare2$Actual.Percent.High = paste0(compare2$Actual.Percent.High,"%")
+    compare2$Actual.Percent.Low = paste0(compare2$Actual.Percent.Low,"%")
+    compare2$Actual.Percent.Close = paste0(compare2$Actual.Percent.Close,"%")
+
+    compare2$Signal[compare2$Signal == 1] = "DID BUY"
+    compare2$Signal[compare2$Signal == 0] = "DIDN'T BUY"
+
+    compare2$Actual[compare2$Actual == 0] = 'MISSED TARGET'
+    compare2$Actual[compare2$Actual == 1] = 'HIT TARGET'
+    
+    colnames(compare2) = c("Actual","Actual High","Actual Low","Actual Close","Confidence Score", "Signal","profit")
+
+    table1.colored = datatable(compare2, rownames = FALSE, options = list(pageLength = 20,
+      columnDefs = list(list(targets = 6, visible = FALSE))
+    )) %>%
+      formatStyle('Actual','profit',
+                  backgroundColor = styleEqual(c(0,1), c('darkred','lightgreen'))) %>%
+      formatStyle('Signal',
+                  backgroundColor = styleEqual(c("DIDN'T BUY","DID BUY"), c('darkred','lightgreen')))
 
     
       
     output$table1 = renderDataTable(table1.colored)
     # output$modelPlot = renderPlot(hist(compare$Confidence.Score))
-    output$modelPlot = renderPlot(ggplot(data = compare, aes(x = `Confidence Score`)) + geom_histogram(colour = "blue", alpha = 0.3))
+    output$modelPlot = renderPlot(ggplot(data = compare, aes(x = pred)) + geom_histogram(colour = "blue", alpha = 0.3))
   })
   
   observeEvent(input$action2, {
@@ -667,10 +702,10 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$action5, {
-    showModal(modalDialog("Generating predictions...", footer = NULL))
+    # showModal(modalDialog("Generating predictions...", footer = NULL))
 
     output$nextWeekOutput = renderPlot(predict_week(tolower(input$selectNextWeek), input$selectTimeFrame))
-    on.exit(removeModal())
+    # on.exit(removeModal())
     
   })
   
@@ -918,13 +953,18 @@ server <- function(input, output, session) {
   # # })
   # 
   observeEvent(input$timeframe,{
-    if(input$timeframe == "15min" | input$timeframe == "1hour"){
-      updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1)
-    }else if(input$timeframe == "2hour"){
-      updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.2, max = 2, step = 0.2, value = 0.2)
+    if(input$selectType == "Crypto" | input$selectType == "Stocks"){
+      if(input$timeframe == "15min" | input$timeframe == "1hour"){
+        updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = -1, max = 1, step = 0.1, value = 0.1)
+      }else if(input$timeframe == "2hour"){
+        updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min =-2, max = 2, step = 0.2, value = 0.2)
+      }else{
+        updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = -3, max = 3, step = 0.2, value = 0.2)
+      }
     }else{
-      updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = 0.2, max = 3, step = 0.2, value = 0.2)
+      updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = -0.5, max = 0.5, step = 0.05, value = 0.05)
     }
+
   })
   
   observeEvent(input$selectType, {
