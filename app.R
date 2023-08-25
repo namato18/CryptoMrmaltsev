@@ -156,14 +156,14 @@ ui <- secure_app(dashboardPage(
                 column(width = 6,
                        box(title = "Metric Descriptions", width = NULL, status = "primary", solidHeader = TRUE,
                          strong("Precision: "),paste0("A measure of how accurate the model is at hitting it's target when it gives a buy signal.",
-                                                      " The equation goes as: (true positives) / (true positives + false positives)"),
-                         br(),
-                         br(),
-                         strong("Recall: "),paste0("A measure of what percentage of buy signals WERE classified correctly compared to how many SHOULD have been classified as a buy signal",
-                                                   " The equation goes as: (true positives) / (true positives + false negatives)"),
-                         br(),
-                         br(),
-                         strong("F1 Score: "),paste0("A value from 0 to 1, 1 being the model classifies every observation correctly. The equation goes as: 2 * (precision * recall) / (precision + recall)")
+                                                      " The equation goes as: (true positives) / (true positives + false positives)")
+                         # br(),
+                         # br(),
+                         # strong("Recall: "),paste0("A measure of what percentage of buy signals WERE classified correctly compared to how many SHOULD have been classified as a buy signal",
+                         #                           " The equation goes as: (true positives) / (true positives + false negatives)"),
+                         # br(),
+                         # br(),
+                         # strong("F1 Score: "),paste0("A value from 0 to 1, 1 being the model classifies every observation correctly. The equation goes as: 2 * (precision * recall) / (precision + recall)")
                        ),
                        box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
                          valueBoxOutput(outputId = "precisionBox", width = 12),
