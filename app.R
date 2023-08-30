@@ -37,16 +37,6 @@ mytheme <- create_theme(
   )
 )
 
-userpass.df =  s3read_using(FUN = readRDS, bucket = "cryptomlbucket/mlprophet_users", object = "userpass.df.rds")
-usernames = userpass.df$user
-passwords = userpass.df$password
-
-credentials <- data.frame(
-  user = usernames,
-  password = passwords,
-  stringsAsFactors = FALSE
-)
-
 
 str1 = readRDS('tickers/str1.rds')
 str2 = readRDS('tickers/str2.rds')
@@ -508,6 +498,16 @@ ui <- secure_app(dashboardPage(
 
 # Define server logic
 server <- function(input, output, session) {
+  userpass.df =  s3read_using(FUN = readRDS, bucket = "cryptomlbucket/mlprophet_users", object = "userpass.df.rds")
+  usernames = userpass.df$user
+  passwords = userpass.df$password
+  
+  credentials <- data.frame(
+    user = usernames,
+    password = passwords,
+    stringsAsFactors = FALSE
+  )
+  
   res_auth <- secure_server(
     check_credentials = check_credentials(credentials)
   )
