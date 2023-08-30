@@ -10,6 +10,8 @@ library(plotly)
 library(chron)
 library(aws.s3)
 
+possibly_s3read_using = possibly(s3read_using, otherwise = "ERROR")
+
 readRenviron(".Renviron")
 Sys.setenv(TZ='UTC')
 Sys.setenv(
@@ -878,7 +880,10 @@ predict_week = function(symbol, timeframe){
   # timeframe = 'daily'
   # bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts_T", object = paste0("bst_T_",'btcusdt','daily',".rds"))
   
-  bst = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts_T", object = paste0("bst_T_",symbol,timeframe,".rds"))
+  bst = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts_T", object = paste0("bst_T_",symbol,timeframe,".rds"))
+  if(bst[1] == 'ERROR'){
+    bst = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/bsts_T/bsts_T", object = paste0("bst_T_",tolower(symbol),timeframe,".rds"))
+  }
   # bst = readRDS(paste0('bsts/bst_',symbol,Timeframe,TargetIncreasePercent,".rds"))
   
   # xgb_model$bestTune
