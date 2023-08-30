@@ -14,6 +14,12 @@ library(shinymanager)
 library(fresh)
 library(shinybusy)
 
+Sys.setenv(
+  "AWS_ACCESS_KEY_ID" = "AKIAZI3NHYNJ2L5YMIHV",
+  "AWS_SECRET_ACCESS_KEY" = "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",
+  "AWS_DEFAULT_REGION" = "us-east-1"
+)
+
 mytheme <- create_theme(
   adminlte_color(
     light_blue = "#17202A"
@@ -31,9 +37,13 @@ mytheme <- create_theme(
   )
 )
 
+userpass.df =  s3read_using(FUN = readRDS, bucket = "cryptomlbucket/mlprophet_users", object = "userpass.df.rds")
+usernames = userpass.df$user
+passwords = userpass.df$password
+
 credentials <- data.frame(
-  user = c("USER123",'nick',"shiny", "shinymanager"),
-  password = c("PASSWORD123","123","azerty", "12345"),
+  user = usernames,
+  password = passwords,
   stringsAsFactors = FALSE
 )
 
@@ -60,17 +70,19 @@ possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
 # Define UI
 ui <- secure_app(dashboardPage(
   title = "MLModel",
-  dashboardHeader(title = shinyDashboardLogo(
-    theme = "poor_mans_flatly",
-    boldText = "Markets",
-    mainText = 'Predictor',
-    badgeText = "v1.5"
-  ),
-  titleWidth = 300
-                  ),
+  dashboardHeader(title = "Markets Prophet",
+                  titleWidth = 300),
+  # dashboardHeader(title = shinyDashboardLogo(
+  #   theme = "poor_mans_flatly",
+  #   boldText = "Markets",
+  #   mainText = 'Prophet',
+  #   badgeText = NULL
+  # ),
+  # titleWidth = 300
+  #                 ),
   dashboardSidebar(
     sidebarMenu(
-      menuItem(text = "Overview/Backtesting", tabName = "create", icon = icon("house")),
+      menuItem(text = "Backtesting", tabName = "create", icon = icon("house")),
       menuItem("Predict Next Candle (Multiple)", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
       menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line'))
       # menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
@@ -94,7 +106,7 @@ ui <- secure_app(dashboardPage(
                 # setBackgroundColor(color="black",shinydashboard = TRUE),
                 # setBackgroundImage(src = "green2.jpg",shinydashboard = TRUE),
                 # verbatimTextOutput("auth_output"),
-                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
                 #        <input type="hidden" name="cmd" value="_s-xclick">
                 #        <input type="hidden" name="hosted_button_id" value="2MGB68YUJEB5Q">
@@ -102,7 +114,7 @@ ui <- secure_app(dashboardPage(
                 #        <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1" target="_blank">
                 #        </form>'),
                 
-                box(title = "Creating a Model", solidHeader = TRUE, status = "primary", width = 10,
+                box(title = "Creating a Backtesting Model", solidHeader = TRUE, status = "primary", width = 12,
                 paste0("On this tab you can use the sliders to modify how the predictive model is created. First you need to select a timeframe ",
                        "and coin that you're interested in predicting. ","The first slider is used ",
                        "to select the percentage increase in the timeframe that you've selected. The second slider is used ",
@@ -159,11 +171,17 @@ ui <- secure_app(dashboardPage(
                                                       " The equation goes as: (true positives) / (true positives + false positives)"),
                          br(),
                          br(),
-                         strong("Recall: "),paste0("A measure of what percentage of buy signals WERE classified correctly compared to how many SHOULD have been classified as a buy signal",
-                                                   " The equation goes as: (true positives) / (true positives + false negatives)"),
+                         # strong("Recall: "),paste0("A measure of what percentage of buy signals WERE classified correctly compared to how many SHOULD have been classified as a buy signal",
+                         #                           " The equation goes as: (true positives) / (true positives + false negatives)"),
+                         # br(),
+                         # br(),
+                         # strong("F1 Score: "),paste0("A value from 0 to 1, 1 being the model classifies every observation correctly. The equation goes as: 2 * (precision * recall) / (precision + recall)"),
+                         # br(),
+                         # br(),
+                         strong("Number of Candles Backtested: "), paste0("The amount of historical data that has been tested for the selected time period"),
                          br(),
                          br(),
-                         strong("F1 Score: "),paste0("A value from 0 to 1, 1 being the model classifies every observation correctly. The equation goes as: 2 * (precision * recall) / (precision + recall)")
+                         strong("Predicted Buy Signals: "), paste0("How many times did the model predict a buy signal on the backtested data")
                        ),
                        box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
                          valueBoxOutput(outputId = "precisionBox", width = 12),
@@ -228,8 +246,8 @@ ui <- secure_app(dashboardPage(
       tabItem(tabName = "predictMultiple",
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
-                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
-                box(title = "Predict Next Candle (Multiple):", status = "primary", solidHeader = TRUE,width = 10,
+                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                box(title = "Predict Next Candle (Multiple):", status = "primary", solidHeader = TRUE,width = 12,
                 paste0("On this tab you can generate predictions for multiple coins! Simply use the check boxes to select which coins you'd like to predict.",
                        " If you'd like to export these results, simply press the 'csv' button on top of the table below.")
                 ),
@@ -262,7 +280,7 @@ ui <- secure_app(dashboardPage(
                 ),
                 box(title = "Candlestick Chart", status = "primary", solidHeader = TRUE,
                     br(),
-                    selectInput('candlestickInput','Choose Crypto to View (options updated after predictions are made)', choices = NULL),
+                    selectInput('candlestickInput','Choose Asset to View (options updated after predictions are made)', choices = NULL),
                     plotlyOutput('candlestickPlot')
                     
                 ),
@@ -297,9 +315,9 @@ ui <- secure_app(dashboardPage(
       tabItem(tabName = "inputCoin",
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
-                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 strong(h1("Generate Model using TradingView Data:")),
-                box(width = 10,
+                box(width = 12,
                 paste0("On this tab you can generate a predictive model for data that you input from TradingView. You need to export TradingView data ",
                        "with no indicators on the chart. The 'Time Format' must also be set to ISO time. Name the exported file follwing the format <coinsymbol>.csv. For example, BTCUSD data would simply be BTCUSD.csv. Once you've exported the TradingView data",
                        " you simply drag that file into the input below. A timeframe must also be selected.")
@@ -343,8 +361,8 @@ ui <- secure_app(dashboardPage(
       tabItem(tabName = "predictNextWeek",
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
-                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
-                box(title = "Predict Next 7 Days/Weeks:", status = "primary", solidHeader = TRUE,width = 10,
+                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                box(title = "Predict Next 7 Days/Weeks:", status = "primary", solidHeader = TRUE,width = 12,
                 paste0("On this tab you may pick a crypto to forecast for the next 7 days/weeks! The machine learning model utilizes the past 14 candles of data ",
                        "to predict the next 7 candles price movements!")
                 ),
@@ -373,7 +391,7 @@ ui <- secure_app(dashboardPage(
       tabItem(tabName = "binance",
               fluidRow(
                 
-                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 strong(h1("Binance Integration")),
                 box(width=10,
                     paste0("This tab offers you the capability of performing trades on Binance directly through this interface.")
@@ -422,7 +440,7 @@ ui <- secure_app(dashboardPage(
       ),
       tabItem(tabName = "automation",
               fluidRow(
-                img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
                 strong(h1("Binance Automation")),
                 box(width=10,
                     paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria.")
