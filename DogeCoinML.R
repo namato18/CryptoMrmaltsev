@@ -10,6 +10,9 @@ library(plotly)
 library(chron)
 library(aws.s3)
 
+options(scipen=999)
+possible_json = possibly(.f = jsonlite::fromJSON, otherwise = 'ERROR' )
+
 possibly_s3read_using = possibly(s3read_using, otherwise = "ERROR")
 
 readRenviron(".Renviron")
@@ -19,6 +22,18 @@ Sys.setenv(
   "AWS_SECRET_ACCESS_KEY" = "Ocum3tjMiRBzNutWLEoN40bIJZAvaAjc7q3bl8Az",
   "AWS_DEFAULT_REGION" = "us-east-1"
 )
+
+tokens_html = read_html("https://etherscan.io/tokens")
+tokens = tokens_html %>% html_nodes(".link-dark") %>%
+  html_attr("href")
+tokens = tokens[grep(pattern = "token",tokens)]
+tokens = str_match(string = tokens, pattern = "token/(.*)")[,2]
+
+names = tokens_html %>% html_nodes(".fw-medium") %>% html_text()
+names = names[1:50]
+
+token.names.df = data.frame(cbind(names,tokens))
+
 Sys.getenv()
 #################################################################################################################
 #################################################################################################################
@@ -1596,3 +1611,103 @@ predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
   assign("predictions.df.comb", predictions.df.comb, .GlobalEnv)
   
 }
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+GetTopHolders = function(token.account.name){
+  page = read_html(paste0("https://etherscan.io/token/generic-tokenholders2?m=dim&a=",token.account.name,"&s=39025187376288180&sid=e88ba71b362fc00233af8a8db211da32&p=1"))
+  
+  holders = page %>% html_nodes(".js-clipboard") %>% html_attr("data-clipboard-text")
+  x = page %>% html_nodes("td") %>% html_text()
+  
+  percentage = x[grep("%",x)] %>% trimws()
+  value = x[grep("\\$",x)] %>% trimws()
+  quantity = x[seq(from=3,to=300,by=6)] %>% trimws()
+  holders.name = x[seq(from=2,to=300,by=6)] %>% trimws()
+  
+  user.coin.holdings = data.frame(holders.name,
+                                  holder.wallet = holders,
+                                  quantity,
+                                  percentage,
+                                  value)
+  return(user.coin.holdings)
+}
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+GetBlockTime = function(days){
+  url = paste0("https://api.etherscan.io/api",
+               "?module=block",
+               "&action=getblocknobytime",
+               "&timestamp=",round(as.numeric(as.POSIXct(Sys.time())- (60*60*24*days)),0),
+               "&closest=before",
+               "&apikey=YourApiKeyToken"
+  )
+  test_get = httr::GET(url)
+  
+  test_get$status_code
+  
+  test = rawToChar(test_get$content)
+  
+  test = possible_json(test, flatten = TRUE)
+  block.number = test$result
+  
+  return(block.number)
+}
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+GetHolderInfo = function(coin.address, holder.address, days){
+  block.number = GetBlockTime(30)
+  # # #
+  # coin.address = token.names.df$tokens[1]
+  # holder.address = "0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503"
+  
+  # get token transactions of account
+  url = paste0("https://api.etherscan.io/api?module=account&action=tokentx",
+               "&contractaddress=",coin.address,
+               "&address=",holder.address,
+               "&page=1",
+               "&offset=10000",
+               "&startblock=",block.number,
+               "&endblock=27025780",
+               "&sort=asc",
+               "&apikey=HKYWSDAZQS14QKVB7KY1AKTQURYMEPFFZU")
+  
+  test_get = httr::GET(url)
+  
+  test_get$status_code
+  
+  test = rawToChar(test_get$content)
+  
+  test = possible_json(test, flatten = TRUE)
+  message = test$message
+  df = test$result
+  
+  if(message == "No transactions found"){
+    print(message)
+  }else{
+    
+    df$datetime = as_datetime(as.numeric(df$timeStamp))
+    df$actualValue = round(as.numeric(df$value) / (1 * 10^(as.numeric(df$tokenDecimal))),0)
+    
+    df = df %>%
+      select("from","to","tokenName","datetime","actualValue")
+    
+    return(df)
+  }
+
+}
+

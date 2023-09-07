@@ -13,12 +13,16 @@ library(purrr)
 library(shinymanager)
 library(fresh)
 library(shinybusy)
+library(rvest)
+library(stringr)
 
 Sys.setenv(
   "AWS_ACCESS_KEY_ID" = "AKIAZI3NHYNJ2L5YMIHV",
   "AWS_SECRET_ACCESS_KEY" = "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",
   "AWS_DEFAULT_REGION" = "us-east-1"
 )
+
+api.key = "HKYWSDAZQS14QKVB7KY1AKTQURYMEPFFZU"
 
 mytheme <- create_theme(
   adminlte_color(
@@ -37,6 +41,16 @@ mytheme <- create_theme(
   )
 )
 
+tokens_html = read_html("https://etherscan.io/tokens")
+tokens = tokens_html %>% html_nodes(".link-dark") %>%
+  html_attr("href")
+tokens = tokens[grep(pattern = "token",tokens)]
+tokens = str_match(string = tokens, pattern = "token/(.*)")[,2]
+
+names = tokens_html %>% html_nodes(".fw-medium") %>% html_text()
+names = names[1:50]
+
+token.names.df = data.frame(cbind(names,tokens))
 
 str1 = readRDS('tickers/str1.rds')
 str2 = readRDS('tickers/str2.rds')
@@ -52,6 +66,8 @@ stock1 = readRDS('tickers/stock1.rds')
 
 checkbox_list = setNames(str1, str1)
 stock.names = setNames(stock1,stock1)
+
+token.names.list = setNames(token.names.df$tokens, token.names.df$names)
 
 possibly_spot_new_order = possibly(spot_new_order, otherwise = 'ERROR')
 possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
@@ -74,7 +90,8 @@ ui <- secure_app(dashboardPage(
     sidebarMenu(
       menuItem(text = "Backtesting", tabName = "create", icon = icon("house")),
       menuItem("Predict Next Candle (Multiple)", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
-      menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line'))
+      menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line')),
+      menuItem("Etherscan", tabName = "etherscan", icon = icon("searchengin"))
       # menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
       # menuItem("Binance", tabName = "binance", icon = icon('sack-dollar')),
       # menuItem("Binance Automation", tabName = "automation", icon = icon('robot'))
@@ -488,7 +505,23 @@ ui <- secure_app(dashboardPage(
                 #     dataTableOutput("tradesPlaced")
                 # )
 
-              ))
+              )),
+      
+      tabItem(tabName = "etherscan",
+              add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
+              
+              box(title = "Select a Coin to Investigate", status = "primary", solidHeader = TRUE,width=6,
+                selectInput(inputId = "selectTopCoin", "Select a Coin", choices = token.names.list)
+              ),
+              box(title = "Holder Info", status = "primary", solidHeader = TRUE,width=12,
+                  dataTableOutput("holderInfo")
+              ),
+              box(title = "Detailed Holder Info", status = "primary", solidHeader = TRUE,width=12,
+                  actionButton("generateHolderInfo", "Grab Detailed Holder Information",width = 12),
+                  dataTableOutput("detailedHolderInfo")
+              )
+              
+              )
     )
   )
   
@@ -1043,6 +1076,28 @@ server <- function(input, output, session) {
     }
     
   })
+  
+  observeEvent(input$selectTopCoin, {
+    
+    holder.info = GetTopHolders(input$selectTopCoin)
+    assign("holder.info",holder.info,.GlobalEnv)
+    
+    output$holderInfo = renderDataTable({
+      datatable(holder.info, rownames = FALSE)
+    })
+  })
+  
+  observeEvent(input$generateHolderInfo, {
+    if(length(input$holderInfo_rows_selected) == 1){
+      holder.coin.df = GetHolderInfo(input$selectTopCoin, holder.info$holder.wallet[input$holderInfo_rows_selected], 30)
+    }
+    
+    output$detailedHolderInfo = renderDataTable({
+      datatable(holder.coin.df, rownames = FALSE)
+    })
+
+  })
+
 
 }
 
