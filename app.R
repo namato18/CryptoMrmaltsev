@@ -517,7 +517,9 @@ ui <- secure_app(dashboardPage(
                   dataTableOutput("holderInfo")
               ),
               box(title = "Detailed Holder Info", status = "primary", solidHeader = TRUE,width=12,
-                  actionButton("generateHolderInfo", "Grab Detailed Holder Information",width = 12),
+                  "select a holder wallet before clicking the button below",
+                  br(),
+                  actionButton("generateHolderInfo", "Grab Detailed Holder Information"),
                   dataTableOutput("detailedHolderInfo")
               ),
               valueBoxOutput("balance", width = 4),
