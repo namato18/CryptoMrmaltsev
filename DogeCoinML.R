@@ -1670,9 +1670,10 @@ GetBlockTime = function(days){
 ##############################################################
 
 GetHolderInfo = function(coin.address, holder.address, days){
+  print("made it inside function")
   block.number = GetBlockTime(30)
   # # #
-  # coin.address = token.names.df$tokens[1]
+  # coin.address = "0xdac17f958d2ee523a2206206994597c13d831ec7"
   # holder.address = "0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503"
   
   # get token transactions of account
@@ -1688,23 +1689,43 @@ GetHolderInfo = function(coin.address, holder.address, days){
   
   test_get = httr::GET(url)
   
-  test_get$status_code
-  
   test = rawToChar(test_get$content)
   
   test = possible_json(test, flatten = TRUE)
   message = test$message
-  df = test$result
+  
+  print(message)
+  
   
   if(message == "No transactions found"){
     print(message)
+    status = "inactive"
+    assign("status",status,.GlobalEnv)
+    
+    return(NULL)
   }else{
+    status = "active"
+    assign("status",status,.GlobalEnv)
+    
+    df = test$result
     
     df$datetime = as_datetime(as.numeric(df$timeStamp))
     df$actualValue = round(as.numeric(df$value) / (1 * 10^(as.numeric(df$tokenDecimal))),0)
     
+    df$in.out = "out"
+    df$in.out[df$to == tolower(holder.address)] = "in"
+    
+    
+    
     df = df %>%
-      select("from","to","tokenName","datetime","actualValue")
+      select("from","to","in.out","tokenName","datetime","actualValue")
+    assign('df.test',df,.GlobalEnv)
+    
+    seven.day.df = df[df$datetime >= Sys.Date() - 7,]
+    assign("seven.day.df",seven.day.df,.GlobalEnv)
+    
+    
+    
     
     return(df)
   }
