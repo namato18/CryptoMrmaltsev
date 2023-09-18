@@ -15,6 +15,9 @@ library(fresh)
 library(shinybusy)
 library(rvest)
 library(stringr)
+library(jsonlite)
+library(shinythemes)
+library(padr)
 
 Sys.setenv(
   "AWS_ACCESS_KEY_ID" = "AKIAZI3NHYNJ2L5YMIHV",
@@ -24,33 +27,47 @@ Sys.setenv(
 
 api.key = "HKYWSDAZQS14QKVB7KY1AKTQURYMEPFFZU"
 
+
+# mytheme <- create_theme(
+#   theme = "cyborg",
+#   bs_vars_color(
+#     brand_primary = "#75b8d1",
+#     brand_success = "#c9d175",
+#     brand_info = "#758bd1",
+#     brand_warning = "#d1ab75",
+#     brand_danger = "#d175b8"
+#   ),
+#   bs_vars_navbar(
+#     default_bg = "#75b8d1",
+#     default_color = "#d175b8",
+#     default_link_color = "#d175b8",
+#     default_link_active_color = "#d175b8"
+#   )
+# )
+
 mytheme <- create_theme(
+  
   adminlte_color(
-    light_blue = "#17202A"
+    light_blue = "#17202a",
+    
   ),
   adminlte_sidebar(
     width = "400px",
-    dark_bg = "#17202A",
+    light_bg = "#FFF",
+    dark_bg = "#FFF",
     dark_hover_bg = "#586473",
     dark_color = "#FFF"
   ),
   adminlte_global(
-    content_bg = "#FFF",
-    box_bg = "#D8DEE9", 
+    content_bg = "#001321",
+    box_bg = "#001A2C",
     info_box_bg = "#D8DEE9"
+    
   )
+  
 )
 
-tokens_html = read_html("https://etherscan.io/tokens")
-tokens = tokens_html %>% html_nodes(".link-dark") %>%
-  html_attr("href")
-tokens = tokens[grep(pattern = "token",tokens)]
-tokens = str_match(string = tokens, pattern = "token/(.*)")[,2]
-
-names = tokens_html %>% html_nodes(".fw-medium") %>% html_text()
-names = names[1:50]
-
-token.names.df = data.frame(cbind(names,tokens))
+# token.names.df.comb = readRDS("tickers/token.names.df.comb.rds")
 
 str1 = readRDS('tickers/str1.rds')
 str2 = readRDS('tickers/str2.rds')
@@ -67,477 +84,532 @@ stock1 = readRDS('tickers/stock1.rds')
 checkbox_list = setNames(str1, str1)
 stock.names = setNames(stock1,stock1)
 
-token.names.list = setNames(token.names.df$tokens, token.names.df$names)
+# token.names.list = setNames(token.names.df.comb$tokens, token.names.df.comb$names)
 
 possibly_spot_new_order = possibly(spot_new_order, otherwise = 'ERROR')
 possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
 
 
 # Define UI
-ui <- secure_app(dashboardPage(
-  title = "MLModel",
-  dashboardHeader(title = "Markets Prophet",
-                  titleWidth = 300),
-  # dashboardHeader(title = shinyDashboardLogo(
-  #   theme = "poor_mans_flatly",
-  #   boldText = "Markets",
-  #   mainText = 'Prophet',
-  #   badgeText = NULL
-  # ),
-  # titleWidth = 300
-  #                 ),
-  dashboardSidebar(
-    sidebarMenu(
-      menuItem(text = "Backtesting", tabName = "create", icon = icon("house")),
-      menuItem("Predict Next Candle (Multiple)", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
-      menuItem("Predict Next 7 Days/Weeks", tabName = 'predictNextWeek', icon = icon('chart-line')),
-      menuItem("Etherscan", tabName = "etherscan", icon = icon("searchengin"))
-      # menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
-      # menuItem("Binance", tabName = "binance", icon = icon('sack-dollar')),
-      # menuItem("Binance Automation", tabName = "automation", icon = icon('robot'))
-      
-      
-      # menuItem("Most Likely Outcome", tabName = "likely")
-      
-    )
-  ),
-  dashboardBody(
-    use_theme(mytheme),
-    # shinyDashboardThemes(
-    #   theme = "poor_mans_flatly"
+ui <- secure_app(
+  theme=shinytheme("cyborg"),
+  dashboardPage(
+    title = "MLModel",
+    dashboardHeader(title = tags$a(tags$text("Markets Prophet"),
+                                   tags$img(src="logo_123_nobg.png",height="40",width="40"),
+                                   style="color: white"),
+                    tags$li(
+                      class = "dropdown",
+                      tags$style(HTML("
+          .navbar-custom-menu{float:left !important;}
+          .sidebar-menu{display:flex;align-items:baseline;}"))
+                    ),
+                    
+                    tags$li(
+                      class = "dropdown",
+                      sidebarMenu(
+                        id = "tablist",
+                        menuItem(text = "", tabName = "create", icon = icon("house")),
+                        menuItem("", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
+                        menuItem("", tabName = 'predictNextWeek', icon = icon('chart-line'))
+                        # menuItem("", tabName = "etherscan", icon = icon("searchengin"))
+                      )
+                    )
+                    
+    ),
+    # dashboardHeader(title = shinyDashboardLogo(
+    #   theme = "poor_mans_flatly",
+    #   boldText = "Markets",
+    #   mainText = 'Prophet',
+    #   badgeText = NULL
     # ),
-    tabItems(
-      tabItem(tabName = "create",
-              fluidPage(
-                add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
-                # setBackgroundColor(color="black",shinydashboard = TRUE),
-                # setBackgroundImage(src = "green2.jpg",shinydashboard = TRUE),
-                # verbatimTextOutput("auth_output"),
-                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
-                # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
-                #        <input type="hidden" name="cmd" value="_s-xclick">
-                #        <input type="hidden" name="hosted_button_id" value="2MGB68YUJEB5Q">
-                #        <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_subscribeCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!" target="_blank">
-                #        <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1" target="_blank">
-                #        </form>'),
-                
-                box(title = "Creating a Backtesting Model", solidHeader = TRUE, status = "primary", width = 12,
-                    paste0("On this tab you can use the sliders to modify how the predictive model is created. First you need to select a timeframe ",
-                           "and coin that you're interested in predicting. ","The first slider is used ",
-                           "to select the percentage increase in the timeframe that you've selected. The second slider is used ",
-                           "to select how confident you want the model to be in order to classify a 'BUY'. The model will make a prediction on a scale from ",
-                           "0-1, the closer to 1 the prediction is, the more confident the model is that your selected percentage increase will happen in your selected timeframe.")
-                ),
-                br(),
-                
-                
-                column(width = 6,
-                       box(title = "Inputs", solidHeader = TRUE, status = "primary", width = NULL,
-                           selectInput("selectType", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
-                                                                                                  "Crypto" = "Crypto",
-                                                                                                  "Forex" = "Forex")),
-                           selectInput("timeframe","Pick a Timeframe", choices = list("15 Minutes" = "15min",
-                                                                                      "1 Hour" = "1hour",
-                                                                                      "4 Hour" = "4hour",
-                                                                                      "8 Hour" = "8hour",
-                                                                                      "1 Day" = "1day")),
-                           selectInput("select","Pick a crypto to predict", choices = checkbox_list),
-                           br(),
-                           sliderInput("slider1","Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1),
-                           sliderInput("slider2", "Confidence Score 'BUY' Threshold", min = 0.1, max = 1, step = 0.02, value = 0.5),
-                           # strong("Note: IT IS STRONGLY RECOMMENDED TO PLACE YOUR TAKE PROFIT TO THE SAME VALUE AS YOUR TARGET PERCENTAGE INCREASE"),
-                           # br(),
-                           # paste0("Metrics by default are calculated based on the candles closing value. ",
-                           #        "You can use the TP (take profit) input field to specify your TP. ",
-                           #        "Setting a TP can limit your gains, but can also limit your losses! ",
-                           #        "Leaving the TP value at 0 will set the metrics to be calculated based on candles closing value."),
-                           # numericInput('tp',"Set TP % (must be positive)", value = 0, min = 0),
-                           # numericInput("sl","Set SL (must be negative)", value = 0, max = 0),
-                           actionButton('action1', label = "Generate"),
-                           br(),
-                           br()
-                       ),
-                       box(title = "Histogram", width = NULL, status = "primary", solidHeader = TRUE,
-                           paste0("Ideally, we'd like there to be a near 0 probability or a near 1 probability for all predictions. ",
-                                  "Values that are more in the middle can give us an unclear prediction."),
-                           plotOutput("modelPlot")
-                       )
-                       # box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
-                       #   # infoBoxOutput("OverallAccuracy", width = 6),
-                       #   infoBoxOutput("Buy", width = 6),
-                       #   infoBoxOutput("SumPercentage", width = 6),
-                       #   # infoBoxOutput("DontBuy", width = 6),
-                       #   infoBoxOutput("Predictions", width = 6),
-                       #   infoBoxOutput("Hits", width = 6)
-                       #   
-                       # ),
-                ),
-                column(width = 6,
-                       box(title = "Metric Descriptions", width = NULL, status = "primary", solidHeader = TRUE,
-                           strong("Precision: "),paste0("A measure of how accurate the model is at hitting it's target when it gives a buy signal.",
-                                                        " The equation goes as: (true positives) / (true positives + false positives)"),
-                           br(),
-                           br(),
-                           # strong("Recall: "),paste0("A measure of what percentage of buy signals WERE classified correctly compared to how many SHOULD have been classified as a buy signal",
-                           #                           " The equation goes as: (true positives) / (true positives + false negatives)"),
-                           # br(),
-                           # br(),
-                           # strong("F1 Score: "),paste0("A value from 0 to 1, 1 being the model classifies every observation correctly. The equation goes as: 2 * (precision * recall) / (precision + recall)"),
-                           # br(),
-                           # br(),
-                           strong("Number of Candles Backtested: "), paste0("The amount of historical data that has been tested for the selected time period"),
-                           br(),
-                           br(),
-                           strong("Predicted Buy Signals: "), paste0("How many times did the model predict a buy signal on the backtested data")
-                       ),
-                       box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
-                           valueBoxOutput(outputId = "precisionBox", width = 12),
-                           # valueBoxOutput(outputId = "recallBox", width = 6),
-                           # valueBoxOutput(outputId = "f1Box", width = 4),
-                           valueBoxOutput(outputId = "totalData", width = 6),
-                           valueBoxOutput(outputId = "predictedHits", width = 6)
-                           
-                       ),
-                       box(width = NULL, title = "Backtest", status = "primary", solidHeader = TRUE,
-                           strong(h4("Variable Info:")),
-                           strong('Actual:'),
-                           paste0("If the next candle actually hit the target percentage increase, this will be 'HIT TARGET', otherwise 'MISSED TARGET'. ",
-                                  "The color will be GREEN if a profit could have been made and RED if a loss could have been made."),
-                           br(),
-                           strong("Actual High:"),
-                           paste0("This was the next candles high"),
-                           br(),
-                           strong("Actual Low:"),
-                           paste0("This was the next candles low"),
-                           br(),
-                           strong("Actual Close:"),
-                           paste0("This was the next candles close"),
-                           br(),
-                           strong("Confidence Score:"),
-                           paste0("This is the confidence the model has that the next candle would reach the target percentage increase (on a scale of 0 to 1)"),
-                           br(),
-                           strong("Signal:"),
-                           paste0("If the 'Confidence Score' is higher than the selected prediction BUY threshold, this will be 'DID BUY', otherwise 'DIDN'T BUY'"),
-                           br(),
-                           br(),
-                           dataTableOutput("table1")
-                       )
-                       
-                )
-                
-                
-              )
-      ),
-      # tabItem(tabName = "predict",
-      #         fluidRow(
-      #           strong(h3("About:")),
-      #           strong("Note that you must create a model on the previous tab before predicting tomorrow!"),
-      #           br(),
-      #           paste0("This tab will simply generate a prediction using the model you created in the 'Creating a Model' Tab. ",
-      #                  "Remember that the probability is on a scale of 0-1, where a larger value represents a higher probability of your ",
-      #                  "model's prediction coming true."),
-      #           br(),
-      #           br(),
-      #           box(title = "Predict Tomorrow", status = "primary", solidHeader = TRUE,
-      #             textInput("open","Open"),
-      #             textInput("close","Close"),
-      #             textInput("low","Low"),
-      #             textInput("high","High"),
-      #             actionButton("action2","Predict"),
-      #             br(),
-      #             br(),
-      #             infoBoxOutput("predict", width = NULL)
-      #           )
-      #         )
-      #         ),
-      tabItem(tabName = "predictMultiple",
-              fluidRow(
-                add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
-                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
-                box(title = "Predict Next Candle (Multiple):", status = "primary", solidHeader = TRUE,width = 12,
-                    paste0("On this tab you can generate predictions for multiple coins! Simply use the check boxes to select which coins you'd like to predict.",
-                           " If you'd like to export these results, simply press the 'csv' button on top of the table below.")
-                ),
-                br(),
-                br(),
-                box(title = "Predict Multiple", status = "primary", solidHeader = TRUE,
-                    # actionButton('selectall','Select All'),
-                    selectInput("selectTypeMult", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
-                                                                                               "Crypto" = "Crypto",
-                                                                                               "Forex" = "Forex")),
-                    selectizeInput('checkGroup',label = 'Select Coin(s)', choices = checkbox_list, multiple = TRUE, options = list(maxItems = 5)),
-                    # checkboxGroupInput('checkGroup', label = 'Select Coin(s)',
-                    #                    choices = checkbox_list,
-                    #                    selected = 'btcusd'),
-                    selectInput("timeframePredict","Pick a Timeframe", choices = list("15 Minutes" = "15min",
-                                                                                      "1 Hour" = "1hour",
-                                                                                      "4 Hour" = "4hour",
-                                                                                      "8 Hour" = "8hour",
-                                                                                      "1 Day" = "1day")),
-                    sliderInput("slider3", "Select Prediction 'BUY' Threshold", min = 0.1, max = 1, step = 0.05, value = 0.5),
-                    actionButton("action4","Predict"),
-                    br(),
-                    br(),
-                    strong(paste0("****** NOTE THAT I AM NOT RESPONSIBLE FOR FINANCIAL LOSS OR GAIN. PLACE TRADES AT YOUR OWN RISK. ",
-                                  "IT IS GOOD TO USE THIS TOOL TO HELP YOU MAKE DECISIONS SUPPORTED BY OTHER EVIDENCE. ******")),
-                    br(),
-                    br()
-                    
-                    
-                ),
-                box(title = "Candlestick Chart", status = "primary", solidHeader = TRUE,
-                    br(),
-                    selectInput('candlestickInput','Choose Asset to View (options updated after predictions are made)', choices = NULL),
-                    plotlyOutput('candlestickPlot')
-                    
-                ),
-                
-                box(title = "Predictions", status = "primary", solidHeader = TRUE, width =12,
-                    br(),
-                    strong(textOutput('timeRemaining')),
-                    br(),
-                    strong(h4("Variable Info:")),
-                    strong('Coin:'),
-                    paste0("The coin being predicted"),
-                    br(),
-                    strong('Price.Change:'),
-                    paste0("The price change that's being predicted"),
-                    br(),
-                    strong('Confidence.Score.HIT.TARGET:'),
-                    paste0("The confidence score that the Price.Change WILL be hit next candle"),
-                    br(),
-                    strong('Confidence.Score.MISS.TARGET:'),
-                    paste0("The confidence score that the Price.Change WILL NOT be hit next candle"),
-                    br(),
-                    strong('Signal:'),
-                    paste0("Either BUY or DON'T BUY depending on if the Confidence.Score.HIT.TARGET is above or below your selected BUY prediction threshold"),
-                    br(),
-                    dataTableOutput("multipleOutput")
-                    
-                )
-                
-              )
-      ),
-      
-      tabItem(tabName = "inputCoin",
-              fluidRow(
-                add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
-                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
-                strong(h1("Generate Model using TradingView Data:")),
-                box(width = 12,
-                    paste0("On this tab you can generate a predictive model for data that you input from TradingView. You need to export TradingView data ",
-                           "with no indicators on the chart. The 'Time Format' must also be set to ISO time. Name the exported file follwing the format <coinsymbol>.csv. For example, BTCUSD data would simply be BTCUSD.csv. Once you've exported the TradingView data",
-                           " you simply drag that file into the input below. A timeframe must also be selected.")
-                ),
-                br(),
-                br(),
-                box(title = "Build Model from TradingView", status = "primary", solidHeader = TRUE,
-                    fileInput('tvDataDrop', label = 'Input TradingView Data Here'),
-                    selectInput("tvTimeFrame","Pick a Timeframe", choices = list("4 Hour" = "4hour",
-                                                                                 "8 Hour" = "8hour",
-                                                                                 "1 Day" = "1day",
-                                                                                 "1 Week" = "7day",
-                                                                                 "1 Month" = '1month')),
-                    sliderInput("tvSlider","Select Percentage Increase", min = 1, max = 5, step = 1, value = 1),
-                    actionButton('action6','Predict')
-                    
-                ),
-                box(title = "Predict Next Candle", status = "primary", solidHeader = TRUE, width =12,
-                    strong(h4("Variable Info:")),
-                    strong('Coin:'),
-                    paste0("The coin being predicted"),
-                    br(),
-                    strong('Price.Change:'),
-                    paste0("The price change that's being predicted"),
-                    br(),
-                    strong('Confidence.Score.HIT.TARGET:'),
-                    paste0("The confidence score that the Price.Change WILL be hit next candle"),
-                    br(),
-                    strong('Confidence.Score.MISS.TARGET:'),
-                    paste0("The confidence score that the Price.Change WILL NOT be hit next candle"),
-                    br(),
-                    strong('Signal:'),
-                    paste0("Either BUY or DON'T BUY depending on if the Confidence.Score.HIT.TARGET is above or below your selected BUY prediction threshold"),
-                    br(),
-                    withSpinner(dataTableOutput('TVPrediction'))
-                )
-                
-              )
-      ),
-      
-      tabItem(tabName = "predictNextWeek",
-              fluidRow(
-                add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
-                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
-                box(title = "Predict Next 7 Days/Weeks:", status = "primary", solidHeader = TRUE,width = 12,
-                    paste0("On this tab you may pick a crypto to forecast for the next 7 days/weeks! The machine learning model utilizes the past 14 candles of data ",
-                           "to predict the next 7 candles price movements!")
-                ),
-                br(),
-                br(),
-                box(title = "Predict Next 7 Days/Weeks", status = "primary", solidHeader = TRUE,
-                    selectInput("selectTypeWeek", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
-                                                                                               "Crypto" = "Crypto",
-                                                                                               "Forex" = "Forex")),
-                    selectInput('selectTimeFrame', 'Pick a Timeframe', choices = list('7 Days' = 'daily',
-                                                                                      '7 Weeks' = 'weekly')),
-                    selectInput('selectNextWeek', "Select a Coin", choices = checkbox_list),
-                    actionButton("action5", "Predict"),
-                    br(),
-                    br()
-                    
-                    
-                ),
-                
-                plotOutput("nextWeekOutput"),
-                strong('Note: Previous data is displayed in BLUE while forecasted data is displayed in RED')
-                
-              )
-      ),
-      
-      tabItem(tabName = "binance",
-              fluidRow(
-                
-                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
-                strong(h1("Binance Integration")),
-                box(width=10,
-                    paste0("This tab offers you the capability of performing trades on Binance directly through this interface.")
-                ),
-                box(title = "Inputs", status = "primary", solidHeader = TRUE,
-                    selectInput('selectCoinBinance', "Select a Coin", choices = checkbox_list, selected = 'BTCUSDT'),
-                    br(),
-                    selectInput('selectTypeBinance', 'Market or Limit', choices = list('Market' = 'MARKET',
-                                                                                       "Limit" = 'LIMIT'),
-                                selected = 'Market'),
-                    br(),
-                    selectInput('selectSideBinance', 'Buy or Sell', choices = list("Buy" = "BUY",
-                                                                                   "Sell" = "SELL"),
-                                selected = 'Buy'),
-                    br(),
-                    # sliderInput("takeProfitBinance", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
-                    # br(),
-                    # sliderInput("stopLossBinance", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
-                    # br(),
-                    numericInput("tradeQuantity", "Quantity", value = 0, min = 0, step = 0.1),
-                    textOutput('decimalsAllowed'),
-                    br(),
-                    sliderInput('percentSliderBinance', 'Percentage of USDT balance',value = 0,min = 0, max = 100, step = 0.1)
-                ),
-                box(title = "Live Price", status = "primary", solidHeader = TRUE,
-                    actionButton(inputId = 'getLivePrice', label = 'Refresh Live Price'),
-                    br(),
-                    br(),
-                    textOutput('livePrice')
-                ),
-                box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
-                    dataTableOutput('spotAccountBalances')
-                ),
-                actionBttn(inputId = 'submitBinance',
-                           label = 'Submit',
-                           icon = icon('money-bill-trend-up'),
-                           style = 'pill',
-                           color = 'warning',
-                           size = 'lg',
-                           block = TRUE),
-                br(),
-                dataTableOutput('binancePredictionTable')
-                
-                
-              )
-      ),
-      tabItem(tabName = "automation",
-              fluidRow(
-                # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
-                strong(h1("Binance Automation")),
-                box(width=10,
-                    paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria.")
-                ),
-                box(title = "Inputs", status = "primary", solidHeader = TRUE,width=4,
-                    selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("1 Hour" = "1hour",
-                                                                                                     "4 Hour" = "4hour")),
-                    br(),
-                    selectInput('checkGroupBinance',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = FALSE, selected = 'BTCUSDT'),
-                    br(),
-                    sliderInput('sliderAutomationTarget', 'Select Target Percentage Increase', min = 0.2, max = 3, value = 1, step = 0.2),
-                    br(),
-                    sliderInput('sliderBalanceUsed', 'Select Percentage of USDT Balance to Use', min = 1, max = 100, value = 1, step = 1),
-                    br(),
-                    sliderInput("takeProfitBinanceAutomation", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
-                    br(),
-                    sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
-                    br(),
-                    sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9)
-                    
-                    
-                ),
-                box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
-                    dataTableOutput('spotAccountBalancesAutomation')
-                ),
-                # box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
-                #     dataTableOutput("currentAutomation")
-                # ),
-                br(),
-                box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
-                    # selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
-                    dataTableOutput("activeAutomationInfo")
-                ),
-                # box(title = "Volume % Change From Mean 5min Volume Over Past 2 Hours", status = "primary", solidHeader = TRUE,width=4,
-                #   gaugeOutput("volumeGauge")
-                # ),
-                actionBttn(inputId = 'submitBinanceAutomation',
-                           label = 'Begin Automation',
-                           icon = icon('robot'),
-                           style = 'pill',
-                           color = 'success',
-                           size = 'lg',
-                           block = TRUE),
-                br(),
-                actionBttn(inputId = 'cancelBinanceAutomation',
-                           label = 'Cancel Automation',
-                           icon = icon('robot'),
-                           style = 'pill',
-                           color = 'danger',
-                           size = 'lg',
-                           block = TRUE),
-                br()
-                # box(title = "Trades Placed", status = "primary", solidHeader = TRUE,width=12,
-                #     selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
-                #     dataTableOutput("tradesPlaced")
-                # )
-                
-              )),
-      
-      tabItem(tabName = "etherscan",
-              add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
-              
-              box(title = "Select a Coin to Investigate", status = "primary", solidHeader = TRUE,width=6,
-                  selectInput(inputId = "selectTopCoin", "Select a Coin", choices = token.names.list)
-              ),
-              box(title = "Holder Info", status = "primary", solidHeader = TRUE,width=12,
-                  dataTableOutput("holderInfo")
-              ),
-              box(title = "Detailed Holder Info", status = "primary", solidHeader = TRUE,width=12,
-                  "select a holder wallet before clicking the button below",
+    # titleWidth = 300
+    #                 ),
+    dashboardSidebar(
+      disable = TRUE
+      # sidebarMenu(
+      #   menuItem(text = "", tabName = "create", icon = icon("house")),
+      #   menuItem("", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
+      #   menuItem("", tabName = 'predictNextWeek', icon = icon('chart-line')),
+      #   menuItem("", tabName = "etherscan", icon = icon("searchengin"))
+      #   # menuItem("Build TradingView Model", tabName = 'inputCoin', icon = icon('upload')),
+      #   # menuItem("Binance", tabName = "binance", icon = icon('sack-dollar')),
+      #   # menuItem("Binance Automation", tabName = "automation", icon = icon('robot'))
+      #   
+      #   
+      #   # menuItem("Most Likely Outcome", tabName = "likely")
+      #   
+      # )
+    ),
+    dashboardBody(
+      use_theme(mytheme),
+      # shinyDashboardThemes(
+      #   theme = "poor_mans_flatly"
+      # ),
+      tabItems(
+        tabItem(tabName = "create",
+                fluidPage(
+                  shinyjs::useShinyjs(),
+                  tags$head(tags$style('body {color:white;}')),
+                  tags$head(tags$link(rel="shortcut icon", href="favicon.png")),
+                  add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "bottom-right"),
+                  # setBackgroundColor(color="black",shinydashboard = TRUE),
+                  # setBackgroundImage(src = "green2.jpg",shinydashboard = TRUE),
+                  # verbatimTextOutput("auth_output"),
+                  # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                  # HTML('<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+                  #        <input type="hidden" name="cmd" value="_s-xclick">
+                  #        <input type="hidden" name="hosted_button_id" value="2MGB68YUJEB5Q">
+                  #        <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_subscribeCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!" target="_blank">
+                  #        <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1" target="_blank">
+                  #        </form>'),
+                  
+                  box(title = "Creating a Backtesting Model", solidHeader = TRUE, status = "primary", width = 12,
+                      paste0("On this tab you can use the sliders to modify how the predictive model is created. First you need to select a timeframe ",
+                             "and coin that you're interested in predicting. ","The first slider is used ",
+                             "to select the percentage increase in the timeframe that you've selected. The second slider is used ",
+                             "to select how confident you want the model to be in order to classify a 'BUY'. The model will make a prediction on a scale from ",
+                             "0-1, the closer to 1 the prediction is, the more confident the model is that your selected percentage increase will happen in your selected timeframe.")
+                  ),
                   br(),
-                  actionButton("generateHolderInfo", "Grab Detailed Holder Information"),
-                  dataTableOutput("detailedHolderInfo")
-              ),
-              valueBoxOutput("balance", width = 4),
-              valueBoxOutput("status", width = 4),
-              valueBoxOutput("dynamics", width = 4),
-              valueBoxOutput("SevenDayChange", width = 4),
-              valueBoxOutput("ThirtyDayChange", width = 4),
-              valueBoxOutput("percentHeld", width = 4)
-              
-              
-              
-              
+                  
+                  
+                  column(width = 6,
+                         box(title = "Inputs", solidHeader = TRUE, status = "primary", width = NULL,
+                             selectInput("selectType", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
+                                                                                                    "Crypto" = "Crypto",
+                                                                                                    "Forex" = "Forex")),
+                             selectInput("timeframe","Pick a Timeframe", choices = list("15 Minutes" = "15min",
+                                                                                        "1 Hour" = "1hour",
+                                                                                        "4 Hour" = "4hour",
+                                                                                        "8 Hour" = "8hour",
+                                                                                        "1 Day" = "1day")),
+                             selectInput("select","Pick a crypto to predict", choices = checkbox_list),
+                             br(),
+                             sliderInput("slider1","Select Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.1),
+                             sliderInput("slider2", "Confidence Score 'BUY' Threshold", min = 0.1, max = 1, step = 0.02, value = 0.5),
+                             # strong("Note: IT IS STRONGLY RECOMMENDED TO PLACE YOUR TAKE PROFIT TO THE SAME VALUE AS YOUR TARGET PERCENTAGE INCREASE"),
+                             # br(),
+                             # paste0("Metrics by default are calculated based on the candles closing value. ",
+                             #        "You can use the TP (take profit) input field to specify your TP. ",
+                             #        "Setting a TP can limit your gains, but can also limit your losses! ",
+                             #        "Leaving the TP value at 0 will set the metrics to be calculated based on candles closing value."),
+                             # numericInput('tp',"Set TP % (must be positive)", value = 0, min = 0),
+                             # numericInput("sl","Set SL (must be negative)", value = 0, max = 0),
+                             actionButton('action1', label = "Generate"),
+                             br(),
+                             br()
+                         ),
+                         box(title = "Histogram", width = NULL, status = "primary", solidHeader = TRUE,
+                             paste0("Ideally, we'd like there to be a near 0 probability or a near 1 probability for all predictions. ",
+                                    "Values that are more in the middle can give us an unclear prediction."),
+                             plotOutput("modelPlot")
+                         )
+                         # box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
+                         #   # infoBoxOutput("OverallAccuracy", width = 6),
+                         #   infoBoxOutput("Buy", width = 6),
+                         #   infoBoxOutput("SumPercentage", width = 6),
+                         #   # infoBoxOutput("DontBuy", width = 6),
+                         #   infoBoxOutput("Predictions", width = 6),
+                         #   infoBoxOutput("Hits", width = 6)
+                         #   
+                         # ),
+                  ),
+                  column(width = 6,
+                         box(title = "Metric Descriptions", width = NULL, status = "primary", solidHeader = TRUE,
+                             strong("Precision: "),paste0("A measure of how accurate the model is at hitting it's target when it gives a buy signal.",
+                                                          " The equation goes as: (true positives) / (true positives + false positives)"),
+                             br(),
+                             br(),
+                             # strong("Recall: "),paste0("A measure of what percentage of buy signals WERE classified correctly compared to how many SHOULD have been classified as a buy signal",
+                             #                           " The equation goes as: (true positives) / (true positives + false negatives)"),
+                             # br(),
+                             # br(),
+                             # strong("F1 Score: "),paste0("A value from 0 to 1, 1 being the model classifies every observation correctly. The equation goes as: 2 * (precision * recall) / (precision + recall)"),
+                             # br(),
+                             # br(),
+                             strong("Number of Candles Backtested: "), paste0("The amount of historical data that has been tested for the selected time period"),
+                             br(),
+                             br(),
+                             strong("Predicted Buy Signals: "), paste0("How many times did the model predict a buy signal on the backtested data")
+                         ),
+                         box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
+                             valueBoxOutput(outputId = "precisionBox", width = 12),
+                             # valueBoxOutput(outputId = "recallBox", width = 6),
+                             # valueBoxOutput(outputId = "f1Box", width = 4),
+                             valueBoxOutput(outputId = "totalData", width = 6),
+                             valueBoxOutput(outputId = "predictedHits", width = 6)
+                             
+                         ),
+                         box(width = NULL, title = "Backtest", status = "primary", solidHeader = TRUE,
+                             strong(h4("Variable Info:")),
+                             strong('Actual:'),
+                             paste0("If the next candle actually hit the target percentage increase, this will be 'HIT TARGET', otherwise 'MISSED TARGET'. ",
+                                    "The color will be GREEN if a profit could have been made and RED if a loss could have been made."),
+                             br(),
+                             strong("Actual High:"),
+                             paste0("This was the next candles high"),
+                             br(),
+                             strong("Actual Low:"),
+                             paste0("This was the next candles low"),
+                             br(),
+                             strong("Actual Close:"),
+                             paste0("This was the next candles close"),
+                             br(),
+                             strong("Confidence Score:"),
+                             paste0("This is the confidence the model has that the next candle would reach the target percentage increase (on a scale of 0 to 1)"),
+                             br(),
+                             strong("Signal:"),
+                             paste0("If the 'Confidence Score' is higher than the selected prediction BUY threshold, this will be 'DID BUY', otherwise 'DIDN'T BUY'"),
+                             br(),
+                             br(),
+                             dataTableOutput("table1")
+                         )
+                         
+                  )
+                  
+                  
+                )
+        ),
+        # tabItem(tabName = "predict",
+        #         fluidRow(
+        #           strong(h3("About:")),
+        #           strong("Note that you must create a model on the previous tab before predicting tomorrow!"),
+        #           br(),
+        #           paste0("This tab will simply generate a prediction using the model you created in the 'Creating a Model' Tab. ",
+        #                  "Remember that the probability is on a scale of 0-1, where a larger value represents a higher probability of your ",
+        #                  "model's prediction coming true."),
+        #           br(),
+        #           br(),
+        #           box(title = "Predict Tomorrow", status = "primary", solidHeader = TRUE,
+        #             textInput("open","Open"),
+        #             textInput("close","Close"),
+        #             textInput("low","Low"),
+        #             textInput("high","High"),
+        #             actionButton("action2","Predict"),
+        #             br(),
+        #             br(),
+        #             infoBoxOutput("predict", width = NULL)
+        #           )
+        #         )
+        #         ),
+        tabItem(tabName = "predictMultiple",
+                fluidRow(
+                  add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "bottom-right"),
+                  # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                  box(title = "Predict Next Candle (Multiple):", status = "primary", solidHeader = TRUE,width = 12,
+                      paste0("On this tab you can generate predictions for multiple coins! Simply use the check boxes to select which coins you'd like to predict.",
+                             " If you'd like to export these results, simply press the 'csv' button on top of the table below.")
+                  ),
+                  br(),
+                  br(),
+                  box(title = "Predict Multiple", status = "primary", solidHeader = TRUE, height = 600,
+                      # actionButton('selectall','Select All'),
+                      selectInput("selectTypeMult", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
+                                                                                                 "Crypto" = "Crypto",
+                                                                                                 "Forex" = "Forex")),
+                      selectizeInput('checkGroup',label = 'Select Coin(s)', choices = checkbox_list, multiple = TRUE, options = list(maxItems = 4)),
+                      # checkboxGroupInput('checkGroup', label = 'Select Coin(s)',
+                      #                    choices = checkbox_list,
+                      #                    selected = 'btcusd'),
+                      selectInput("timeframePredict","Pick a Timeframe", choices = list("15 Minutes" = "15min",
+                                                                                        "1 Hour" = "1hour",
+                                                                                        "4 Hour" = "4hour",
+                                                                                        "8 Hour" = "8hour",
+                                                                                        "1 Day" = "1day")),
+                      sliderInput("slider3", "Select Prediction 'BUY' Threshold", min = 0.1, max = 1, step = 0.05, value = 0.5),
+                      actionButton("action4","Predict"),
+                      br(),
+                      br(),
+                      strong(paste0("****** NOTE THAT I AM NOT RESPONSIBLE FOR FINANCIAL LOSS OR GAIN. PLACE TRADES AT YOUR OWN RISK. ",
+                                    "IT IS GOOD TO USE THIS TOOL TO HELP YOU MAKE DECISIONS SUPPORTED BY OTHER EVIDENCE. ******")),
+                      br(),
+                      br()
+                      
+                      
+                  ),
+                  box(title = "Candlestick Chart", status = "primary", solidHeader = TRUE, height = 600,
+                      br(),
+                      selectInput('candlestickInput','Choose Asset to View (options updated after predictions are made)', choices = NULL),
+                      plotlyOutput('candlestickPlot')
+                      
+                  ),
+                  
+                  box(title = "Predictions", status = "primary", solidHeader = TRUE, width =12,
+                      br(),
+                      strong(textOutput('timeRemaining')),
+                      br(),
+                      strong(h4("Variable Info:")),
+                      strong('Coin:'),
+                      paste0("The coin being predicted"),
+                      br(),
+                      strong('Price.Change:'),
+                      paste0("The price change that's being predicted"),
+                      br(),
+                      strong('CS HT (Confidence Score Hit Target):'),
+                      paste0("The confidence score that the Price.Change will be hit next candle"),
+                      br(),
+                      strong('CS BH (Confidence Score Break Previous High):'),
+                      paste0("The confidence score that the Price.Change will break through the previous high"),
+                      br(),
+                      strong('Prev.High:'),
+                      paste0("The previous candles high"),
+                      br(),
+                      strong('CS BL (Confidence Score Break Previous Low):'),
+                      paste0("The confidence score that the Price.Change will break through the previous low"),
+                      br(),
+                      strong('Prev.Low:'),
+                      paste0("The previous candles low"),
+                      br(),
+                      strong('Signal:'),
+                      paste0("Either BUY or DON'T BUY depending on if the Confidence.Score.HIT.TARGET is above or below your selected BUY prediction threshold")
+                      
+                  ),
+                  box(title = "Prediction 1", status = "primary", solidHeader = TRUE, width=6,
+                      dataTableOutput("multipleOutput1")
+                  ),
+                  box(title = "Prediction 2", status = "primary", solidHeader = TRUE, width=6,
+                      dataTableOutput("multipleOutput2")
+                  ),
+                  box(title = "Prediction 3", status = "primary", solidHeader = TRUE, width=6,
+                      dataTableOutput("multipleOutput3")
+                  ),
+                  box(title = "Prediction 4", status = "primary", solidHeader = TRUE, width=6,
+                      dataTableOutput("multipleOutput4")
+                  )
+                  
+                )
+        ),
+        
+        tabItem(tabName = "inputCoin",
+                fluidRow(
+                  add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "bottom-right"),
+                  # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                  strong(h1("Generate Model using TradingView Data:")),
+                  box(width = 12,
+                      paste0("On this tab you can generate a predictive model for data that you input from TradingView. You need to export TradingView data ",
+                             "with no indicators on the chart. The 'Time Format' must also be set to ISO time. Name the exported file follwing the format <coinsymbol>.csv. For example, BTCUSD data would simply be BTCUSD.csv. Once you've exported the TradingView data",
+                             " you simply drag that file into the input below. A timeframe must also be selected.")
+                  ),
+                  br(),
+                  br(),
+                  box(title = "Build Model from TradingView", status = "primary", solidHeader = TRUE,
+                      fileInput('tvDataDrop', label = 'Input TradingView Data Here'),
+                      selectInput("tvTimeFrame","Pick a Timeframe", choices = list("4 Hour" = "4hour",
+                                                                                   "8 Hour" = "8hour",
+                                                                                   "1 Day" = "1day",
+                                                                                   "1 Week" = "7day",
+                                                                                   "1 Month" = '1month')),
+                      sliderInput("tvSlider","Select Percentage Increase", min = 1, max = 5, step = 1, value = 1),
+                      actionButton('action6','Predict')
+                      
+                  ),
+                  box(title = "Predict Next Candle", status = "primary", solidHeader = TRUE, width =12,
+                      strong(h4("Variable Info:")),
+                      strong('Coin:'),
+                      paste0("The coin being predicted"),
+                      br(),
+                      strong('Price.Change:'),
+                      paste0("The price change that's being predicted"),
+                      br(),
+                      strong('Confidence.Score.HIT.TARGET:'),
+                      paste0("The confidence score that the Price.Change WILL be hit next candle"),
+                      br(),
+                      strong('Confidence.Score.MISS.TARGET:'),
+                      paste0("The confidence score that the Price.Change WILL NOT be hit next candle"),
+                      br(),
+                      strong('Signal:'),
+                      paste0("Either BUY or DON'T BUY depending on if the Confidence.Score.HIT.TARGET is above or below your selected BUY prediction threshold"),
+                      br(),
+                      withSpinner(dataTableOutput('TVPrediction'))
+                  )
+                  
+                )
+        ),
+        
+        tabItem(tabName = "predictNextWeek",
+                fluidRow(
+                  add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "bottom-right"),
+                  # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                  column(width = 6,
+                         box(title = "Predict Next 7 Days/Weeks:", status = "primary", solidHeader = TRUE, width = 12,
+                             paste0("On this tab you may pick a crypto to forecast for the next 7 days/weeks! The machine learning model utilizes the past 14 candles of data ",
+                                    "to predict the next 7 candles price movements!"),
+                             br(),
+                             br(),
+                             selectInput("selectTypeWeek", "Pick Which Type to Predict", choices = list("Stocks" = "Stocks",
+                                                                                                        "Crypto" = "Crypto",
+                                                                                                        "Forex" = "Forex")),
+                             selectInput('selectTimeFrame', 'Pick a Timeframe', choices = list('7 Days' = 'daily',
+                                                                                               '7 Weeks' = 'weekly')),
+                             selectInput('selectNextWeek', "Select a Coin", choices = checkbox_list),
+                             actionButton("action5", "Predict"),
+                             br(),
+                             strong('Note: Previous data is displayed in BLUE while forecasted data is displayed in RED'),
+                             br()
+                             
+                         )
+                         
+                         
+                  ),
+                  column(width = 6,
+                         dataTableOutput("forecastWeekOutput")
+                         
+                  ),
+                  
+                  
+                  plotOutput("nextWeekOutput")
+                  
+                  
+                )
+        ),
+        
+        tabItem(tabName = "binance",
+                fluidRow(
+                  
+                  # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                  strong(h1("Binance Integration")),
+                  box(width=10,
+                      paste0("This tab offers you the capability of performing trades on Binance directly through this interface.")
+                  ),
+                  box(title = "Inputs", status = "primary", solidHeader = TRUE,
+                      selectInput('selectCoinBinance', "Select a Coin", choices = checkbox_list, selected = 'BTCUSDT'),
+                      br(),
+                      selectInput('selectTypeBinance', 'Market or Limit', choices = list('Market' = 'MARKET',
+                                                                                         "Limit" = 'LIMIT'),
+                                  selected = 'Market'),
+                      br(),
+                      selectInput('selectSideBinance', 'Buy or Sell', choices = list("Buy" = "BUY",
+                                                                                     "Sell" = "SELL"),
+                                  selected = 'Buy'),
+                      br(),
+                      # sliderInput("takeProfitBinance", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
+                      # br(),
+                      # sliderInput("stopLossBinance", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
+                      # br(),
+                      numericInput("tradeQuantity", "Quantity", value = 0, min = 0, step = 0.1),
+                      textOutput('decimalsAllowed'),
+                      br(),
+                      sliderInput('percentSliderBinance', 'Percentage of USDT balance',value = 0,min = 0, max = 100, step = 0.1)
+                  ),
+                  box(title = "Live Price", status = "primary", solidHeader = TRUE,
+                      actionButton(inputId = 'getLivePrice', label = 'Refresh Live Price'),
+                      br(),
+                      br(),
+                      textOutput('livePrice')
+                  ),
+                  box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
+                      dataTableOutput('spotAccountBalances')
+                  ),
+                  actionBttn(inputId = 'submitBinance',
+                             label = 'Submit',
+                             icon = icon('money-bill-trend-up'),
+                             style = 'pill',
+                             color = 'warning',
+                             size = 'lg',
+                             block = TRUE),
+                  br(),
+                  dataTableOutput('binancePredictionTable')
+                  
+                  
+                )
+        ),
+        tabItem(tabName = "automation",
+                fluidRow(
+                  # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+                  strong(h1("Binance Automation")),
+                  box(width=10,
+                      paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria.")
+                  ),
+                  box(title = "Inputs", status = "primary", solidHeader = TRUE,width=4,
+                      selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("1 Hour" = "1hour",
+                                                                                                       "4 Hour" = "4hour")),
+                      br(),
+                      selectInput('checkGroupBinance',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = FALSE, selected = 'BTCUSDT'),
+                      br(),
+                      sliderInput('sliderAutomationTarget', 'Select Target Percentage Increase', min = 0.2, max = 3, value = 1, step = 0.2),
+                      br(),
+                      sliderInput('sliderBalanceUsed', 'Select Percentage of USDT Balance to Use', min = 1, max = 100, value = 1, step = 1),
+                      br(),
+                      sliderInput("takeProfitBinanceAutomation", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
+                      br(),
+                      sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
+                      br(),
+                      sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9)
+                      
+                      
+                  ),
+                  box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
+                      dataTableOutput('spotAccountBalancesAutomation')
+                  ),
+                  # box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
+                  #     dataTableOutput("currentAutomation")
+                  # ),
+                  br(),
+                  box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
+                      # selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
+                      dataTableOutput("activeAutomationInfo")
+                  ),
+                  # box(title = "Volume % Change From Mean 5min Volume Over Past 2 Hours", status = "primary", solidHeader = TRUE,width=4,
+                  #   gaugeOutput("volumeGauge")
+                  # ),
+                  actionBttn(inputId = 'submitBinanceAutomation',
+                             label = 'Begin Automation',
+                             icon = icon('robot'),
+                             style = 'pill',
+                             color = 'success',
+                             size = 'lg',
+                             block = TRUE),
+                  br(),
+                  actionBttn(inputId = 'cancelBinanceAutomation',
+                             label = 'Cancel Automation',
+                             icon = icon('robot'),
+                             style = 'pill',
+                             color = 'danger',
+                             size = 'lg',
+                             block = TRUE),
+                  br()
+                  # box(title = "Trades Placed", status = "primary", solidHeader = TRUE,width=12,
+                  #     selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
+                  #     dataTableOutput("tradesPlaced")
+                  # )
+                  
+                ))
+        
+        # tabItem(tabName = "etherscan",
+        #         add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
+        #         
+        #         column(width = 6,
+        #                box(title = "Select a Coin to Investigate", status = "primary", solidHeader = TRUE,width=NULL,
+        #                    selectInput(inputId = "selectTopCoin", "Select a Coin", choices = token.names.list)
+        #                ),
+        #                box(title = "Holder Info", status = "primary", solidHeader = TRUE,width=NULL,
+        #                    dataTableOutput("holderInfo")
+        #                )
+        #         ),
+        #         
+        #         box(title = "Detailed Holder Info", status = "primary", solidHeader = TRUE,width=12,
+        #             "select a holder wallet before clicking the button below. Wait ~5 seconds before grabbing new data.",
+        #             br(),
+        #             actionButton("generateHolderInfo", "Grab Detailed Holder Information"),
+        #             dataTableOutput("detailedHolderInfo")
+        #         ),
+        #         valueBoxOutput("balance", width = 4),
+        #         valueBoxOutput("status", width = 4),
+        #         valueBoxOutput("dynamics", width = 4),
+        #         valueBoxOutput("SevenDayChange", width = 4),
+        #         valueBoxOutput("ThirtyDayChange", width = 4),
+        #         valueBoxOutput("percentHeld", width = 4)
+        #         
+        #         
+        #         
+        #         
+        # )
       )
     )
+    
+    
   )
-  
-  
-)
 )
 
 # Define server logic
@@ -664,7 +736,12 @@ server <- function(input, output, session) {
   
   
   observeEvent(input$action1, {
-    showModal(modalDialog("Generating Your Model...", footer = NULL))
+    tags$head(tags$style("#modalGen .modal-header {background-color: #17202a; text-align: center}"))
+    showModal(tags$div(id="modalGen",modalDialog(title= tags$div(HTML(paste(
+      "cyl = ",
+      tags$span("Generating Model...", style="color:black")
+    ))),
+    footer = NULL)))
     on.exit(removeModal())
     if(input$slider1 == 0){
       
@@ -720,7 +797,8 @@ server <- function(input, output, session) {
     
     table1.colored = datatable(compare2, rownames = FALSE, options = list(pageLength = 20,
                                                                           columnDefs = list(list(targets = 6, visible = FALSE))
-    )) %>%
+                                                                          
+    ), style = "bootstrap") %>%
       formatStyle('Actual','profit',
                   backgroundColor = styleEqual(c(0,1), c('darkred','lightgreen'))) %>%
       formatStyle('Signal',
@@ -742,7 +820,12 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$action4, {
-    showModal(modalDialog("Generating predictions...", footer = NULL))
+    tags$head(tags$style("#modalPred .modal-header {background-color: #17202a; text-align: center}"))
+    showModal(tags$div(id="modalPred",modalDialog(title= tags$div(HTML(paste(
+      "cyl = ",
+      tags$span("Generating Predictions...", style="color:black")
+    ))),
+    footer = NULL)))
     on.exit(removeModal())
     x = input$checkGroup
     updateSelectInput(session = session, inputId = 'candlestickInput', choices = x, selected = head(x,1))
@@ -752,27 +835,56 @@ server <- function(input, output, session) {
     }else{
       predict.next.bh.bl.tar(input$checkGroup, input$timeframePredict, input$slider3)
     }
-    dt.colored = datatable(predictions.df.comb,
-                           rownames = FALSE,
-                           extensions = c("Buttons","FixedHeader"),
-                           options = list(paging = FALSE,fixedHeader = TRUE, searching = FALSE, dom = 'Bfrtip', buttons = c('csv'))) %>%
-      formatStyle("Signal",
-                  backgroundColor = styleEqual(c("DON'T BUY SIGNAL", "BUY SIGNAL"), c('darkred','lightgreen')))
-    output$multipleOutput = renderDataTable(dt.colored)
+    
+    
+    dt.colored1 = Color.DT(predictions.df.indi1)
+    dt.colored2 = Color.DT(predictions.df.indi2)
+    dt.colored3 = Color.DT(predictions.df.indi3)
+    dt.colored4 = Color.DT(predictions.df.indi4)
+    
+    output$multipleOutput1 = renderDataTable(dt.colored1)
+    
+    
+    if(is.null(dt.colored2)){
+      shinyjs::hide("multipleOutput2")
+    }else{
+      shinyjs::show("multipleOutput2")
+      output$multipleOutput2 = renderDataTable(dt.colored2)
+    }
+    if(is.null(dt.colored3)){
+      shinyjs::hide("multipleOutput3")
+    }else{
+      shinyjs::show("multipleOutput3")
+      output$multipleOutput3 = renderDataTable(dt.colored3)
+    }
+    if(is.null(dt.colored4)){
+      shinyjs::hide("multipleOutput4")
+    }else{
+      shinyjs::show("multipleOutput4")
+      output$multipleOutput4 = renderDataTable(dt.colored4)
+    }
+    
+    
     output$binancePredictionTable = renderDataTable(dt.colored)
     output$candlestickPlot = renderPlotly(createCandlePlot(input$candlestickInput))
   })
   
   observeEvent(input$action5, {
     # showModal(modalDialog("Generating predictions...", footer = NULL))
+    output$nextWeekOutput = renderPlot(predict_week(tolower(input$selectNextWeek), input$selectTimeFrame, input$selectTypeWeek))
+    output$forecastWeekOutput = renderDataTable(datatable(week.forecast.df, style = "bootstrap", rownames = FALSE))
     
-    output$nextWeekOutput = renderPlot(predict_week(tolower(input$selectNextWeek), input$selectTimeFrame))
     # on.exit(removeModal())
     
   })
   
   observeEvent(input$action6, {
-    showModal(modalDialog("Generating predictions...", footer = NULL))
+    tags$head(tags$style("#modalPred2 .modal-header {background-color: #17202a; text-align: center}"))
+    showModal(tags$div(id="modalPred2",modalDialog(title= tags$div(HTML(paste(
+      "cyl = ",
+      tags$span("Generating Predictions...", style="color:black")
+    ))),
+    footer = NULL)))
     on.exit(removeModal())
     
     if(is.null(input$tvDataDrop)){
@@ -1054,12 +1166,12 @@ server <- function(input, output, session) {
   
   observeEvent(input$selectTypeMult, {
     if(input$selectTypeMult == "Stocks"){
-      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Stock to Predict", choices = stock.names, options = list(maxItems = 5))
+      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Stock to Predict", choices = stock.names, options = list(maxItems = 4))
       updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("Daily" = "daily",
                                                                                                 "Weekly" = "weekly"))
     }
     if(input$selectTypeMult == "Crypto"){
-      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Crypto to Predict", choices = checkbox_list, options = list(maxItems = 5))
+      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Crypto to Predict", choices = checkbox_list, options = list(maxItems = 4))
       updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("15 Minutes" = "15min",
                                                                                                 "1 Hour" = "1hour",
                                                                                                 "4 Hour" = "4hour",
@@ -1067,7 +1179,7 @@ server <- function(input, output, session) {
                                                                                                 "1 Day" = "1day"))
     }
     if(input$selectTypeMult == "Forex"){
-      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Forex Pair to Predict", choices = fx.pair.names, options = list(maxItems = 5))
+      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Forex Pair to Predict", choices = fx.pair.names, options = list(maxItems = 4))
       updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("1 Hour" = "1hour",
                                                                                                 "4 Hour" = "4hour",
                                                                                                 "8 Hour" = "8hour",
@@ -1088,118 +1200,118 @@ server <- function(input, output, session) {
     
   })
   
-  observeEvent(input$selectTopCoin, {
-    
-    holder.info = GetTopHolders(input$selectTopCoin)
-    assign("holder.info",holder.info,.GlobalEnv)
-    
-    output$holderInfo = renderDataTable({
-      datatable(holder.info, rownames = FALSE, selection = "single")
-    })
-  })
-  
-  observeEvent(input$generateHolderInfo, {
-    
-    print(paste0("Coin Code: ",input$selectTopCoin))
-    print(paste0("Holder Code: ",holder.info$holder.wallet[input$holderInfo_rows_selected]))
-    
-    
-    print("success")
-    holder.coin.df = GetHolderInfo(input$selectTopCoin, holder.info$holder.wallet[input$holderInfo_rows_selected], 30)
-    print("past function")
-    
-    if(length(holder.coin.df) > 0){
-      in.trades = sum(as.numeric(holder.coin.df$actualValue[holder.coin.df$in.out == "in"]))
-      out.trades = sum(as.numeric(holder.coin.df$actualValue[holder.coin.df$in.out == "out"]))
-      
-      sum.trades = in.trades - out.trades
-    }
-    
-    
-    
-    
-    if(exists("seven.day.df")){
-      
-      if(nrow(seven.day.df) > 0){
-        # seven day metrics
-        in.trades.seven = sum(as.numeric(seven.day.df$actualValue[seven.day.df$in.out == "in"]))
-        out.trades.seven = sum(as.numeric(seven.day.df$actualValue[seven.day.df$in.out == "out"]))
-        
-        sum.trades.seven = in.trades.seven - out.trades.seven
-      }else{
-        sum.trades.seven = 0
-      }
-    }else{
-      sum.trades.seven = 0
-    }
-    
-    
-    if(status == "active"){
-      
-      output$detailedHolderInfo = renderDataTable(datatable(holder.coin.df, rownames = FALSE, selection = "none"))
-      
-      output$balance = renderValueBox(
-        valueBox(value = holder.info$quantity[input$holderInfo_rows_selected], subtitle = "Balance (coin)", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-      )
-      
-      output$status = renderValueBox(
-        valueBox(value = "Active", subtitle = "Status", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-      )
-      
-      
-      if(sum.trades >= 0){
-        output$ThirtyDayChange = renderValueBox(
-          valueBox(value = paste0("+",sum.trades), subtitle = "30 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-        )
-        output$dynamics = renderValueBox(
-          valueBox(value = "Coins In", subtitle = "Coin Movement Over 30 Days", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-        )
-      }else{
-        output$ThirtyDayChange = renderValueBox(
-          valueBox(value = paste0(sum.trades), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-        )
-        output$dynamics = renderValueBox(
-          valueBox(value = "Coins Out", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-        )
-      }
-      
-      if(sum.trades.seven >= 0){
-        output$SevenDayChange = renderValueBox(
-          valueBox(value = paste0("+",sum.trades.seven), subtitle = "7 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-        )
-      }else{
-        output$SevenDayChange = renderValueBox(
-          valueBox(value = paste0(sum.trades.seven), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-        )
-      }
-      
-      output$percentHeld = renderValueBox(
-        valueBox(value = holder.info$percentage[input$holderInfo_rows_selected], subtitle = "Percentage of Circulating Supply Held", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-      )
-    }else{
-      output$status = renderValueBox(
-        valueBox(value = "Not Active", subtitle = "Status", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-      )
-      
-      
-      output$ThirtyDayChange = renderValueBox(
-        valueBox(value = paste0("No Activity"), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-      )
-      output$SevenDayChange = renderValueBox(
-        valueBox(value = paste0("No Activity"), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-      )
-      output$dynamics = renderValueBox(
-        valueBox(value = "No Activity", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-      )
-      
-      
-    }
-    
-    
-    
-    
-    
-  })
+  # observeEvent(input$selectTopCoin, {
+  #   
+  #   holder.info = GetTopHolders(input$selectTopCoin)
+  #   assign("holder.info",holder.info,.GlobalEnv)
+  #   
+  #   output$holderInfo = renderDataTable({
+  #     datatable(holder.info, rownames = FALSE, style = "bootstrap", selection = "single")
+  #   })
+  # })
+  # 
+  # observeEvent(input$generateHolderInfo, {
+  #   
+  #   print(paste0("Coin Code: ",input$selectTopCoin))
+  #   print(paste0("Holder Code: ",holder.info$holder.wallet[input$holderInfo_rows_selected]))
+  #   
+  #   
+  #   print("success")
+  #   holder.coin.df = GetHolderInfo(input$selectTopCoin, holder.info$holder.wallet[input$holderInfo_rows_selected], 30)
+  #   print("past function")
+  #   
+  #   if(length(holder.coin.df) > 0){
+  #     in.trades = sum(as.numeric(holder.coin.df$actualValue[holder.coin.df$in.out == "in"]))
+  #     out.trades = sum(as.numeric(holder.coin.df$actualValue[holder.coin.df$in.out == "out"]))
+  #     
+  #     sum.trades = in.trades - out.trades
+  #   }
+  #   
+  #   
+  #   
+  #   
+  #   if(exists("seven.day.df")){
+  #     
+  #     if(nrow(seven.day.df) > 0){
+  #       # seven day metrics
+  #       in.trades.seven = sum(as.numeric(seven.day.df$actualValue[seven.day.df$in.out == "in"]))
+  #       out.trades.seven = sum(as.numeric(seven.day.df$actualValue[seven.day.df$in.out == "out"]))
+  #       
+  #       sum.trades.seven = in.trades.seven - out.trades.seven
+  #     }else{
+  #       sum.trades.seven = 0
+  #     }
+  #   }else{
+  #     sum.trades.seven = 0
+  #   }
+  #   
+  #   
+  #   if(status == "active"){
+  #     
+  #     output$detailedHolderInfo = renderDataTable(datatable(holder.coin.df, style = "bootstrap", rownames = FALSE, selection = "none"))
+  #     
+  #     output$balance = renderValueBox(
+  #       valueBox(value = holder.info$quantity[input$holderInfo_rows_selected], subtitle = "Balance (coin)", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     
+  #     output$status = renderValueBox(
+  #       valueBox(value = "Active", subtitle = "Status", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     
+  #     
+  #     if(sum.trades >= 0){
+  #       output$ThirtyDayChange = renderValueBox(
+  #         valueBox(value = paste0("+",sum.trades), subtitle = "30 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #       output$dynamics = renderValueBox(
+  #         valueBox(value = "Coins In", subtitle = "Coin Movement Over 30 Days", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #     }else{
+  #       output$ThirtyDayChange = renderValueBox(
+  #         valueBox(value = paste0(sum.trades), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #       output$dynamics = renderValueBox(
+  #         valueBox(value = "Coins Out", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #     }
+  #     
+  #     if(sum.trades.seven >= 0){
+  #       output$SevenDayChange = renderValueBox(
+  #         valueBox(value = paste0("+",sum.trades.seven), subtitle = "7 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #     }else{
+  #       output$SevenDayChange = renderValueBox(
+  #         valueBox(value = paste0(sum.trades.seven), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #     }
+  #     
+  #     output$percentHeld = renderValueBox(
+  #       valueBox(value = holder.info$percentage[input$holderInfo_rows_selected], subtitle = "Percentage of Circulating Supply Held", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #   }else{
+  #     output$status = renderValueBox(
+  #       valueBox(value = "Not Active", subtitle = "Status", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     
+  #     
+  #     output$ThirtyDayChange = renderValueBox(
+  #       valueBox(value = paste0("No Activity"), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     output$SevenDayChange = renderValueBox(
+  #       valueBox(value = paste0("No Activity"), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     output$dynamics = renderValueBox(
+  #       valueBox(value = "No Activity", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     
+  #     
+  #   }
+  #   
+  #   
+  #   
+  #   
+  #   
+  # })
   
   
 }

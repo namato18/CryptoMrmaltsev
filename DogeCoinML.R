@@ -23,16 +23,8 @@ Sys.setenv(
   "AWS_DEFAULT_REGION" = "us-east-1"
 )
 
-tokens_html = read_html("https://etherscan.io/tokens")
-tokens = tokens_html %>% html_nodes(".link-dark") %>%
-  html_attr("href")
-tokens = tokens[grep(pattern = "token",tokens)]
-tokens = str_match(string = tokens, pattern = "token/(.*)")[,2]
 
-names = tokens_html %>% html_nodes(".fw-medium") %>% html_text()
-names = names[1:50]
-
-token.names.df = data.frame(cbind(names,tokens))
+# token.names.df = readRDS("tickers/token.names.df.rds")
 
 Sys.getenv()
 #################################################################################################################
@@ -372,6 +364,11 @@ predict.tomorrow.multiple <- function(Type,Symbols, Timeframe, SuccessThreshold,
   # i = 1
   # SuccessThreshold = 0.9
   # Type="Stocks"
+  assign("predictions.df.indi1", NULL, .GlobalEnv)
+  assign("predictions.df.indi2", NULL, .GlobalEnv)
+  assign("predictions.df.indi3", NULL, .GlobalEnv)
+  assign("predictions.df.indi4", NULL, .GlobalEnv)
+  
   
   print(Type)
   predictions.df.comb = data.frame("Coin" = character(),
@@ -794,8 +791,17 @@ predict.tomorrow.multiple <- function(Type,Symbols, Timeframe, SuccessThreshold,
     predictions.df.comb$C.Score.HIT.TARGET = round(predictions.df.comb$C.Score.HIT.TARGET, 3)
     predictions.df.comb$C.Score.MISS.TARGET = round(predictions.df.comb$C.Score.MISS.TARGET, 3)
     
+    #INDIVIDUAL
+    predictions.df.indi = data.frame(rbind(predictions.df.neg,predictions.df.pos))
+    predictions.df.indi = predictions.df.indi[,-4]
+    colnames(predictions.df.indi) = c("Coin","Price.Change","CS HT","CS BH", "Prev.High","CS BL", "Prev.Low","Signal")
+    predictions.df.indi$`CS HT` = round(predictions.df.indi$`CS HT`, 3)
+    assign(paste0("predictions.df.indi",i), predictions.df.indi, .GlobalEnv)
+    
     
   }
+  predictions.df.comb = predictions.df.comb[,-4]
+  colnames(predictions.df.comb) = c("Coin","Price.Change","CS HT","CS BH", "Prev.High","CS BL", "Prev.Low","Signal")
   assign("predictions.df.comb",predictions.df.comb,.GlobalEnv)
   
   
@@ -816,13 +822,15 @@ predict.tomorrow.multiple <- function(Type,Symbols, Timeframe, SuccessThreshold,
 
 
 
-predict_week = function(symbol, timeframe){
+predict_week = function(symbol, timeframe,type){
+
   symbol = toupper(symbol)
   # symbol = 'AAPL'
   # timeframe = 'daily'
+  # type = "Stocks"
   data = data.frame(getSymbols.tiingo(Symbols = symbol, auto.assign = FALSE,api.key = '6fbd6ce7c9e035489f6238bfab127fcedbe34ac2', periodicity = timeframe))
   # data = data.frame(getSymbols(symbol, auto.assign = FALSE, periodicity = timeframe))
-  data = data[-nrow(data),1:4]
+  data = data[,1:4]
   data = na.omit(data)
   # data = round(data, digits = 0)
   
@@ -834,12 +842,22 @@ predict_week = function(symbol, timeframe){
   data$time = gsub(pattern = "\\.", replacement = "-", x = data$time)
   
   if(timeframe == 'daily'){
-    data.add = data.frame(time = seq(from = as_date(Sys.Date()),
-                                     by = "day", length.out = 7),
-                          open = NA,
-                          high = NA,
-                          low = NA,
-                          close = NA)
+    if(type == "Stocks" | type == "Forex"){
+      data.add = data.frame(time = seq(from = as_date(Sys.Date()),
+                                       by = "day", length.out = 9),
+                            open = NA,
+                            high = NA,
+                            low = NA,
+                            close = NA)
+    }else{
+      data.add = data.frame(time = seq(from = as_date(Sys.Date()),
+                                       by = "day", length.out = 7),
+                            open = NA,
+                            high = NA,
+                            low = NA,
+                            close = NA)
+    }
+
   }else{
     data.add = data.frame(time = seq(from = as_date(Sys.Date()),
                                      by = "week", length.out = 7),
@@ -882,7 +900,11 @@ predict_week = function(symbol, timeframe){
   # SPLIT INTO TRAIN AND TEST
   train <- data_selected[1:(nrow(data)-7), ]
   
-  pred <- data_selected[((nrow(data) - 7 + 1)):nrow(data), ]
+  if(type == "Stocks" | type == "Forex"){
+    pred <- data_selected[((nrow(data) - 9 + 1)):(nrow(data)-2), ]
+  }else{
+    pred <- data_selected[((nrow(data) - 7 + 1)):nrow(data), ]
+    }
   
   
   
@@ -921,6 +943,55 @@ predict_week = function(symbol, timeframe){
   x = cbind(x, times)
   x$times = as.Date(x$times)
   
+  pad.x = pad(x)
+  
+  for(i in 1:(nrow(pad.x)-2)){
+    pad.x$predicted_y[i] = pad.x$predicted_y[i + 2]
+  }
+  
+  for(i in 2:nrow(pad.x)){
+    if(!is.na(pad.x$data_y[i-1]) & is.na(pad.x$data_y[i])){
+      pad.x$data_y[i] = pad.x$data_y[i-1]
+    }
+    if(!is.na(pad.x$predicted_y[i-1]) & is.na(pad.x$predicted_y[i])){
+      pad.x$predicted_y[i] = pad.x$predicted_y[i-1]
+    }
+  }
+  
+  pad.x$predicted_y[c(nrow(pad.x),nrow(pad.x)-1)] = NA
+  pad.x$data_y[c(nrow(pad.x),nrow(pad.x)-1)] = NA
+  
+  
+  ind.rem = which(!is.na(pad.x$data_y) & !is.na(pad.x$predicted_y))[-1]
+  pad.x$data_y[ind.rem] = NA
+  
+  saturdays = which(!is.na(pad.x$predicted_y) & grepl(pattern = "Saturday", x = weekdays(pad.x$times)))
+  if(length(saturdays) > 0 ){
+    vals = pad.x$predicted_y[saturdays:nrow(pad.x)]
+    lag.vals = Lag(vals, 2)
+
+    pad.x$predicted_y[saturdays:nrow(pad.x)] = lag.vals
+  }
+  
+  sundays = which(!is.na(pad.x$predicted_y) & grepl(pattern = "Sunday", x = weekdays(pad.x$times)))
+  if(length(sundays) > 0 ){
+    vals = pad.x$predicted_y[sundays:nrow(pad.x)]
+    lag.vals = Lag(vals, 1)
+    
+    pad.x$predicted_y[sundays:nrow(pad.x)] = lag.vals
+  }
+  
+  if(type == "Stocks" | type == "Forex"){
+    x = pad.x
+    for(i in 2:nrow(x)){
+      if(is.na(x$predicted_y[i])){
+        x$predicted_y[i] = x$predicted_y[i-1]
+      }
+    }
+  }
+  
+  x$predicted_y[!is.na(x$data_y) & !is.na(x$predicted_y)] = x$data_y[!is.na(x$data_y) & !is.na(x$predicted_y)] 
+
   if(timeframe == 'daily'){
     plot.out = ggplot(data = x, aes(x = times)) + 
       geom_line(aes(y = data_y), color = "blue") +
@@ -940,6 +1011,9 @@ predict_week = function(symbol, timeframe){
       scale_x_date(date_breaks = "1 week", date_labels =  "%d %B") +
       theme(axis.text.x=element_text(angle=60, hjust=1))
   }
+  colnames(x) = c("Past Close Price","Predicted Close Price","Date")
+  assign("week.forecast.df",x,.GlobalEnv)
+  print(x)
   
   
   return(plot.out)
@@ -1400,6 +1474,10 @@ predict.next.ohlc = function(symbol, output){
 
 predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
 
+  assign("predictions.df.indi1", NULL, .GlobalEnv)
+  assign("predictions.df.indi2", NULL, .GlobalEnv)
+  assign("predictions.df.indi3", NULL, .GlobalEnv)
+  assign("predictions.df.indi4", NULL, .GlobalEnv)
   
   predictions.df.comb = data.frame("Coin" = character(),
                                    "Price Change" = character(),
@@ -1564,9 +1642,9 @@ predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
         pred = predict(bst, df)
         assign(paste0("pred_",prediction),pred,.GlobalEnv)
       }else{
-        for(j in seq(from= 0.05, to = 0.25, by=0.05)){
-          bst.pos = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",pair,"_",timeframe,j,".rds"))
-          bst.neg = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",pair,"_",timeframe,-j,".rds"))
+        for(z in seq(from= 0.05, to = 0.25, by=0.05)){
+          bst.pos = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",pair,"_",timeframe,z,".rds"))
+          bst.neg = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",pair,"_",timeframe,-z,".rds"))
           pred.pos = predict(bst.pos, df)
           pred.neg = predict(bst.neg, df)
           predictions.pos = c(predictions.pos, pred.pos)
@@ -1604,10 +1682,20 @@ predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
     
     predictions.df.neg$Signal[predictions.df.neg$C.Score.HIT.TARGET >= success.thresh] = "BUY SIGNAL"
     
+    #INDIVIDUAL
+    predictions.df.indi = data.frame(rbind(predictions.df.neg,predictions.df.pos))
+    predictions.df.indi = predictions.df.indi[,-4]
+    colnames(predictions.df.indi) = c("Coin","Price.Change","CS HT","CS BH", "Prev.High","CS BL", "Prev.Low","Signal")
+    predictions.df.indi$`CS HT` = round(predictions.df.indi$`CS HT`, 3)
+    assign(paste0("predictions.df.indi",j), predictions.df.indi, .GlobalEnv)
+    print(j)
+    
     # COMBINED
     predictions.df.comb = data.frame(rbind(predictions.df.comb,predictions.df.neg,predictions.df.pos))
     
   }
+  predictions.df.comb = predictions.df.comb[,-4]
+  colnames(predictions.df.comb) = c("Coin","Price.Change","CS HT","CS BH", "Prev.High","CS BL", "Prev.Low","Signal")
   assign("predictions.df.comb", predictions.df.comb, .GlobalEnv)
   
 }
@@ -1619,21 +1707,24 @@ predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
 ##############################################################
 
 GetTopHolders = function(token.account.name){
-  page = read_html(paste0("https://etherscan.io/token/generic-tokenholders2?m=dim&a=",token.account.name,"&s=39025187376288180&sid=e88ba71b362fc00233af8a8db211da32&p=1"))
+  # page = read_html(paste0("https://etherscan.io/token/generic-tokenholders2?m=dim&a=",token.account.name,"&s=39025187376288180&sid=e88ba71b362fc00233af8a8db211da32&p=1"))
+  # 
+  # holders = page %>% html_nodes(".js-clipboard") %>% html_attr("data-clipboard-text")
+  # x = page %>% html_nodes("td") %>% html_text()
+  # 
+  # percentage = x[grep("%",x)] %>% trimws()
+  # value = x[grep("\\$",x)] %>% trimws()
+  # quantity = x[seq(from=3,to=300,by=6)] %>% trimws()
+  # holders.name = x[seq(from=2,to=300,by=6)] %>% trimws()
+  # 
+  # user.coin.holdings = data.frame(holders.name,
+  #                                 holder.wallet = holders,
+  #                                 quantity,
+  #                                 percentage,
+  #                                 value)
+  user.coin.holdings = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/EtherscanData", object = paste0("userpass.df.",token.account.name,".rds"))
   
-  holders = page %>% html_nodes(".js-clipboard") %>% html_attr("data-clipboard-text")
-  x = page %>% html_nodes("td") %>% html_text()
   
-  percentage = x[grep("%",x)] %>% trimws()
-  value = x[grep("\\$",x)] %>% trimws()
-  quantity = x[seq(from=3,to=300,by=6)] %>% trimws()
-  holders.name = x[seq(from=2,to=300,by=6)] %>% trimws()
-  
-  user.coin.holdings = data.frame(holders.name,
-                                  holder.wallet = holders,
-                                  quantity,
-                                  percentage,
-                                  value)
   return(user.coin.holdings)
 }
 
@@ -1731,4 +1822,26 @@ GetHolderInfo = function(coin.address, holder.address, days){
   }
 
 }
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+Color.DT = function(df){
+  if(is.null(df)){
+    return(NULL)
+  }else{
+    dt.colored = datatable(df,
+                           rownames = FALSE,
+                           extensions = c("Buttons","FixedHeader"),
+                           style = "bootstrap",
+                           options = list(paging = FALSE,fixedHeader = TRUE, searching = FALSE, dom = 'Bfrtip', buttons = c('csv'))) %>%
+      formatStyle("Signal",
+                  backgroundColor = styleEqual(c("DON'T BUY SIGNAL", "BUY SIGNAL"), c('darkred','lightgreen')))
+    
+    return(dt.colored)
+  }
+}
+
 
