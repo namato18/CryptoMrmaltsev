@@ -49,10 +49,55 @@ createCandlePlot = function(symbol){
 
 
 # CALC TIME TO NEXT CANDLE CLOSE
-getTimeRemaining = function(timeframe){
+getTimeRemaining2 = function(timeframe, type){
   
   utcTime = lubridate::now(tzone = 'UTC')
   utcTime = format(utcTime, format = "%H:%M:%S")
+  
+  if(type == "Forex"){
+    utcTime = utcTime - as.times("01:00:00")
+  }
+  
+  if(timeframe == "15min"){
+    hour.t = hours(chron(times=utcTime))
+    minutes.t = minutes(chron(times=utcTime))
+    
+    candle.times = floor(seq(from = 0, to = 60, by = 14.95))
+    
+    
+    ind = which(candle.times >= minutes.t)[1]
+    candle.t.ind = candle.times[ind]
+    
+    end.of.candle = chron(times=paste0(hour.t,":",candle.t.ind,":59"))
+    
+    remainingTime = end.of.candle - utcTime
+    return(remainingTime)
+  }
+  
+  if(timeframe == "1hour"){
+    hour.t = hours(chron(times=utcTime))
+    
+    end.of.candle = chron(times=paste0(hour.t,":59:59"))
+    
+    remainingTime = end.of.candle - utcTime
+    return(remainingTime)
+  }
+  
+  if(timeframe == "2hour"){
+    hour.t = hours(chron(times=utcTime))
+    
+    two.hrs = seq(from = 0, to = 24, by = 2)
+    
+    if(any(hour.t %in% two.hrs)){
+      end.of.candle = chron(times=paste0(as.numeric(hour.t)+1,":59:59"))
+    }else{
+      end.of.candle = chron(times=paste0(hour.t,":59:59"))
+    }
+    remainingTime = end.of.candle - utcTime
+    
+    return(remainingTime)
+  }
+  
   if(timeframe == '4hour'){
     if(utcTime >= chron(times="20:00:00")){
       remainingTime = chron(times="23:59:59") - utcTime
@@ -93,13 +138,76 @@ getTimeRemaining = function(timeframe){
       return(remainingTime)
     }
   }
-  if(timeframe == '1day'){
+  if(timeframe == '1day' | timeframe == "daily"){
     remainingTime = chron(times="23:59:59") - utcTime
     return(remainingTime)
     
   }
   
+  
 }
+
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+
+
+# CALC TIME TO NEXT CANDLE CLOSE
+# getTimeRemaining = function(timeframe){
+#   
+#   utcTime = lubridate::now(tzone = 'UTC')
+#   utcTime = format(utcTime, format = "%H:%M:%S")
+#   if(timeframe == '4hour'){
+#     if(utcTime >= chron(times="20:00:00")){
+#       remainingTime = chron(times="23:59:59") - utcTime
+#       return(remainingTime)
+#     }
+#     if(utcTime >= chron(times="16:00:00")){
+#       remainingTime = chron(times="19:59:59") - utcTime
+#       return(remainingTime)
+#     }
+#     if(utcTime >= chron(times="12:00:00")){
+#       remainingTime = chron(times="15:59:59") - utcTime
+#       return(remainingTime)
+#     }
+#     if(utcTime >= chron(times="08:00:00")){
+#       remainingTime = chron(times="11:59:59") - utcTime
+#       return(remainingTime)
+#     }
+#     if(utcTime >= chron(times="04:00:00")){
+#       remainingTime = chron(times="7:59:59") - utcTime
+#       return(remainingTime)
+#     }
+#     if(utcTime >= chron(times="00:00:00")){
+#       remainingTime = chron(times="3:59:59") - utcTime
+#       return(remainingTime)
+#     }
+#   }
+#   if(timeframe == '8hour'){
+#     if(utcTime >= chron(times="16:00:00")){
+#       remainingTime = chron(times="23:59:59") - utcTime
+#       return(remainingTime)
+#     }
+#     if(utcTime >= chron(times="08:00:00")){
+#       remainingTime = chron(times="15:59:59") - utcTime
+#       return(remainingTime)
+#     }
+#     if(utcTime >= chron(times="00:00:00")){
+#       remainingTime = chron(times="7:59:59") - utcTime
+#       return(remainingTime)
+#     }
+#   }
+#   if(timeframe == '1day'){
+#     remainingTime = chron(times="23:59:59") - utcTime
+#     return(remainingTime)
+#     
+#   }
+#   
+# }
 
 
 #################################################################################################################

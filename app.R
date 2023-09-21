@@ -337,7 +337,7 @@ ui <- secure_app(
                   
                   box(title = "Predictions", status = "primary", solidHeader = TRUE, width =12,
                       br(),
-                      strong(textOutput('timeRemaining')),
+                      strong(textOutput('timer')),
                       br(),
                       strong(h4("Variable Info:")),
                       strong('Coin:'),
@@ -614,6 +614,11 @@ ui <- secure_app(
 
 # Define server logic
 server <- function(input, output, session) {
+  
+  dateTime = reactiveVal(Sys.time())
+  output$timer = renderText(paste0("Time reamining in this candle: ",dateTime()))
+  
+  
   userpass.df =  s3read_using(FUN = readRDS, bucket = "cryptomlbucket/mlprophet_users", object = "userpass.df.rds")
   usernames = userpass.df$user
   passwords = userpass.df$password
@@ -632,6 +637,16 @@ server <- function(input, output, session) {
   })
   
   observe({
+    invalidateLater(1000, session)
+    isolate({
+      if(is.null(input$timeframePredict)){
+        
+      }else{
+        dateTime(getTimeRemaining2(input$timeframePredict, input$selectTypeMult))
+      }
+      # dateTime(dateTime()-1)
+    })
+
     # if(is.null(reactiveValuesToList(res_auth)$user)){
     #   
     # }else if(reactiveValuesToList(res_auth)$user == 'nick'){
