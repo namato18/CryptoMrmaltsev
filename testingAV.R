@@ -1,15 +1,17 @@
-library(RSelenium)
 library(htmltools)
 library(xml2)
 library(purrr)
 library(rvest)
 library(lubridate)
 library(quantmod)
+library(tictoc)
 
 api.key.av = "1RF2MSZAZY8XHUGV"
 
 possible_json = possibly(.f = jsonlite::fromJSON, otherwise = 'ERROR' )
 possibly_parse_date_time = possibly(.f = parse_date_time, otherwise = "All Day")
+possibly_s3read_using = possibly(s3read_using, otherwise = "ERROR")
+
 
 # Using the AV API --------------------------------
 
@@ -33,10 +35,24 @@ Get_News_Sentiment = function(ticker = NULL,topic = NULL,time_from = NULL,time_t
 }
 
 
-
+# 2007-08-05
 
 # Webscraping ForexFactory --------------------------------
-url = "https://www.forexfactory.com/calendar?week=sep17.2023"
+ts.test = seq(ymd('2007-08-05'),ymd('2023-09-24'),by='weeks')
+
+months.test = month(ts.test)
+months.abr = month.abb
+
+months.test = months.abr[months.test]
+
+days.test = day(ts.test)
+years.test = year(ts.test)
+
+for(j in 1:length(ts.test)){
+  j=1
+  url = paste0("https://www.forexfactory.com/calendar?week=", ts.test[j])
+  
+}
 
 page = read_html(url)
 
@@ -70,7 +86,6 @@ x = parse_date_time(df$time, "%I:%M%p")
 date.counter = 2
 
 for(i in 2:length(x)){
-  i=4
   if(is.na(x[i])){
     next()
   }
@@ -79,3 +94,18 @@ for(i in 2:length(x)){
     date.counter = date.counter + 1
   }
 }
+# --------------------------------
+
+df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData", object = "df_apr1.2007.rds")
+
+test.dates = parse_date_time(df$date, "%B %d %Y")
+
+test.datetimes = paste0(df$date, " ", df$time)
+
+test.datetimes = parse_date_time(test.datetimes, "%B %d %Y %I:%M%p")
+
+test.datetimes
+
+x = riingo::riingo_fx_prices(ticker = "audusd", start_date = "2020-01-01", resample_frequency = "30min")
+
+
