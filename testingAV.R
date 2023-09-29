@@ -5,24 +5,30 @@ library(rvest)
 library(lubridate)
 library(quantmod)
 library(tictoc)
+library(stringr)
+library(aws.s3)
+library(riingo)
 
 api.key.av = "1RF2MSZAZY8XHUGV"
 
 possible_json = possibly(.f = jsonlite::fromJSON, otherwise = 'ERROR' )
 possibly_parse_date_time = possibly(.f = parse_date_time, otherwise = "All Day")
 possibly_s3read_using = possibly(s3read_using, otherwise = "ERROR")
+possibly_riingo_fx_prices = possibly(riingo_fx_prices, otherwise = "ERROR")
 
 
 # Using the AV API --------------------------------
 
-Get_News_Sentiment = function(ticker = NULL,topic = NULL,time_from = NULL,time_to = NULL,sort = "LATEST",limit = 1000,api.key = api.key.av){
-  ticker = "BTCUSDT"
-  
-  base.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT")
-  
-  ticker.url = paste0("&",ticker)
-  
-  full.url = paste0(base.url, ticker.url,"&apikey=",api.key.av)
+ts.av = seq(ymd('2023-01-01'),ymd('2023-09-26'),by='2 days')
+ts.av = str_replace_all(ts.av, pattern = "-", replacement = "")
+ts.av = paste0(ts.av,"T0000")
+
+time.series = ts.av
+api.key = api.key.av
+topic="ipo"
+
+for(i in 1:(length(time.series)-1)){
+  full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&limit=1000&time_from=",time.series[i],"&time_to=",time.series[i + 2],"&topics=",topic,"&apikey=",api.key)
   
   test_get = httr::GET(full.url)
   
@@ -32,8 +38,100 @@ Get_News_Sentiment = function(ticker = NULL,topic = NULL,time_from = NULL,time_t
   
   test = possible_json(test, flatten = TRUE)
   df = test$feed
+  
+  if(i == 1){
+    assign("df.comb.earnings",df,.GlobalEnv)
+  }else{
+    df.comb.earnings = rbind(df.comb.earnings,df)
+  }
+  
+  Sys.sleep(3)
 }
 
+df.comb = df.comb.earnings
+saveRDS(df.comb, "AlphaVantageData/df.comb.ipo.rds")
+
+x = lubridate::parse_date_time(df.comb$time_published,"ymdHMS") %>%
+  round_date("30 min")
+
+df.comb$date = x
+
+# df.comb$tickers = NA
+# for(i in 1:nrow(df.comb)){
+#   df.comb$tickers[i] = paste0(df.comb$ticker_sentiment[[i]]$ticker, collapse = ",")
+# }
+
+df.simple.comb = data.frame(ticker = character(),
+                            relevance_score = character(),
+                            ticker_sentiment_score = character(),
+                            ticker_sentiment_label = character(),
+                            date = character(),
+                            title = character(),
+                            source = character())
+
+for(i in 1:nrow(df.comb)){
+  df.simple = df.comb$ticker_sentiment[[i]]
+  if(nrow(df.simple) == 0){
+    next()
+  }
+  df.simple$date = df.comb$date[i]
+  df.simple$title = df.comb$title[i]
+  df.simple$source = df.comb$source[i]
+  
+  df.simple.comb = rbind(df.simple.comb, df.simple)
+  print(i)
+}
+df.simple.comb = df.simple.comb[!duplicated(df.simple.comb),]
+saveRDS(df.simple.comb,"AlphaVantageData/df.simple.comb.ipo.rds")
+
+
+df.forex = df.simple.comb[grep("FOREX",df.simple.comb$ticker),]
+df.crypto = df.simple.comb[grep("CRYPTO",df.simple.comb$ticker),]
+
+df.forex$one.hr.back = NA
+df.forex$thirty.min.back = NA
+df.forex$price.news.break = NA
+df.forex$thirty.min.forward = NA
+df.forex$one.hr.forward = NA
+
+ticker.forex = str_replace(string = df.forex$ticker, pattern = "FOREX:", replacement = "")
+
+ticker.forex[ticker.forex == "USD"] = "usdcad"
+ticker.forex[ticker.forex == "EUR"] = "eurusd"
+ticker.forex[ticker.forex == "GBP"] = "gbpusd"
+ticker.forex[ticker.forex == "NZD"] = "nzdusd"
+ticker.forex[ticker.forex == "AUD"] = "audusd"
+ticker.forex[ticker.forex == "CHF"] = "chfjpy"
+
+ind = grep("usdcad|eurusd|gbpusd|nzdusd|audusd", ticker.forex)
+
+ticker.forex = ticker.forex[ind]
+
+for(i in 1:length(ticker.forex)){
+  test = possibly_riingo_fx_prices(ticker = ticker.forex[i], start_date = df.forex$date[ind[i]] - (60*60), end_date = df.forex$date[ind[i]] + (60*60), resample_frequency = "30min")
+  
+  if(test[1] == "ERROR"){
+    next()
+  }
+  df.forex$one.hr.back[i] = test$close[1]
+  df.forex$thirty.min.back[i] = test$close[2]
+  df.forex$price.news.break[i] = test$close[3]
+  df.forex$thirty.min.forward[i] = test$close[4]
+  df.forex$one.hr.forward[i] = test$close[5]
+  print(i)
+}
+saveRDS(df.forex, "AlphaVantageData/df.forex.ipo.rds")
+
+# --------------------------------
+
+ticker.usdt = str_replace(string = df.crypto$ticker, pattern = "CRYPTO:", replacement = "") %>%
+  paste0("USDT")
+day.only = ymd(df.crypto$date)
+
+
+
+
+riingo::riingo_crypto_prices(ticker = "BTCUSDT", start_date = df.crypto$date[1] - (60*60),end_date = df.crypto$date[1] + (60*60), resample_frequency = "30min")
 
 # 2007-08-05
 
@@ -66,12 +164,12 @@ forecast = (page %>% html_nodes(".calendar__forecast") %>% html_text())[-1]
 previous = (page %>% html_nodes(".calendar__previous") %>% html_text())[-1]
 
 df = data.frame(time = time,
-           currency = currency,
-           event.title = event.title,
-           actual = actual,
-           forecast = forecast,
-           previous = previous
-           )
+                currency = currency,
+                event.title = event.title,
+                actual = actual,
+                forecast = forecast,
+                previous = previous
+)
 df$date = NA
 df$date[1] = date[1]
 

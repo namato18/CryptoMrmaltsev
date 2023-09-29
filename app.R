@@ -111,8 +111,7 @@ ui <- secure_app(
                         id = "tablist",
                         menuItem(text = "", tabName = "create", icon = icon("house")),
                         menuItem("", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
-                        menuItem("", tabName = 'predictNextWeek', icon = icon('chart-line')),
-                        menuItem("ForexFactory Historicals", tabName = "forexFactoryHistoricals", icon = icon('calendar'))
+                        menuItem("", tabName = 'predictNextWeek', icon = icon('chart-line'))
                         # menuItem("", tabName = "etherscan", icon = icon("searchengin"))
                       )
                     )
@@ -151,7 +150,7 @@ ui <- secure_app(
         tabItem(tabName = "create",
                 fluidPage(
                   shinyjs::useShinyjs(),
-                  tags$head(tags$style('body {color:white;}'),tags$link(rel = "stylesheet", type = "text/css", href = "stylev1.css")),
+                  tags$head(tags$style('body {color:white;}')),
                   tags$head(tags$link(rel="shortcut icon", href="favicon.png")),
                   add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "bottom-right"),
                   # setBackgroundColor(color="black",shinydashboard = TRUE),
@@ -575,39 +574,7 @@ ui <- secure_app(
                   #     dataTableOutput("tradesPlaced")
                   # )
                   
-                )),
-        
-        tabItem(tabName = "forexFactoryHistoricals",
-                box(title = "Historical News Sentiment Data", status = "primary", solidHeader = TRUE,
-                  paste0("Use this tab to examine how historical news articles have affected forex prices. This data is gathered ",
-                         "from the Forex Factory website"),
-                  br(),
-                  br(),
-                  selectInput(inputId = "newsRegion",label = "Select a News Region", choices = list("US" = "US",
-                                                                                                    "EU" = "EU")),
-                  selectInput(inputId = "eventType", label = "Select an Event Type", choices = list("Growth" = "growth",
-                                                                                                    "Inflation" = "inflation",
-                                                                                                    "Employment" = "employment",
-                                                                                                    "CentralBank" = "bank",
-                                                                                                    "Bonds" = "bonds",
-                                                                                                    "Houwsing" = "housing",
-                                                                                                    "Consumer Surveys" = "consumersurveys",
-                                                                                                    "Business Surveys" = "businesssurveys",
-                                                                                                    "Speeches" = "speeches",
-                                                                                                    "Misc" = "misc"
-                                                                                                    )),
-                  dateRangeInput(inputId = "dateRange", label = "Select a Range of Dates to Analyze",
-                                 start = "2007-08-05", end = Sys.Date(), min = "2007-08-05", max = Sys.Date()),
-                  selectInput(inputId = "assetType", label = "Select an Asset", choices = list("AUD" = "AUD",
-                                                                                               "USD" = "USD",
-                                                                                               "GBP" = "GBP",
-                                                                                               "CAD" = "CAD",
-                                                                                               "JPY" = "JPY",
-                                                                                               "NZD" = "NZD",
-                                                                                               "CNY" = "CNY")),
-                  actionButton(inputId = "displayResluts", label = "Display Results")
-                )
-                )
+                ))
         
         # tabItem(tabName = "etherscan",
         #         add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
@@ -1360,30 +1327,6 @@ server <- function(input, output, session) {
   #   
   #   
   # })
-  
-  observeEvent(input$displayResluts, {
-    if(weekdays(as.Date(input$dateRange[1])) != "Sunday"){
-      print("Please select a date that is a Sunday")
-    }else{
-      print("Sunday success")
-    }
-    
-    ts.input = seq(ymd(input$dateRange[1]),ymd(input$dateRange[2]),by='weeks')
-    assign("ts.input",ts.input,.GlobalEnv)
-    months.input = month(ts.input)
-    months.abr = month.abb
-    
-    months.input = tolower(months.abr[months.input])
-    
-    days.input = day(ts.input)
-    years.input = year(ts.input)
-    
-    date.input = paste0(months.input,days.input,".",years.input)
-    date.input = paste0("df_",date.input,".rds")
-    
-    MergeHistoricalData(date.input)
-
-  })
   
   
 }
