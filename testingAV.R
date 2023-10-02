@@ -25,7 +25,7 @@ ts.av = paste0(ts.av,"T0000")
 
 time.series = ts.av
 api.key = api.key.av
-topic="ipo"
+topic="blockchain"
 
 for(i in 1:(length(time.series)-1)){
   full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&limit=1000&time_from=",time.series[i],"&time_to=",time.series[i + 2],"&topics=",topic,"&apikey=",api.key)
@@ -46,10 +46,13 @@ for(i in 1:(length(time.series)-1)){
   }
   
   Sys.sleep(3)
+  
+  print(i)
 }
 
-df.comb = df.comb.earnings
-saveRDS(df.comb, "AlphaVantageData/df.comb.ipo.rds")
+df.comb = df.comb.blockchain
+# df.comb = df.comb.earnings
+saveRDS(df.comb, paste0("AlphaVantageData/df.comb.",topic,".rds"))
 
 x = lubridate::parse_date_time(df.comb$time_published,"ymdHMS") %>%
   round_date("30 min")
@@ -82,7 +85,7 @@ for(i in 1:nrow(df.comb)){
   print(i)
 }
 df.simple.comb = df.simple.comb[!duplicated(df.simple.comb),]
-saveRDS(df.simple.comb,"AlphaVantageData/df.simple.comb.ipo.rds")
+saveRDS(df.simple.comb,paste0("AlphaVantageData/df.simple.comb.",topic,".rds"))
 
 
 df.forex = df.simple.comb[grep("FOREX",df.simple.comb$ticker),]
@@ -120,90 +123,90 @@ for(i in 1:length(ticker.forex)){
   df.forex$one.hr.forward[i] = test$close[5]
   print(i)
 }
-saveRDS(df.forex, "AlphaVantageData/df.forex.ipo.rds")
+saveRDS(df.forex, paste0("AlphaVantageData/df.forex.",topic,".rds"))
 
 # --------------------------------
-
-ticker.usdt = str_replace(string = df.crypto$ticker, pattern = "CRYPTO:", replacement = "") %>%
-  paste0("USDT")
-day.only = ymd(df.crypto$date)
-
-
-
-
-riingo::riingo_crypto_prices(ticker = "BTCUSDT", start_date = df.crypto$date[1] - (60*60),end_date = df.crypto$date[1] + (60*60), resample_frequency = "30min")
-
-# 2007-08-05
+# 
+# ticker.usdt = str_replace(string = df.crypto$ticker, pattern = "CRYPTO:", replacement = "") %>%
+#   paste0("USDT")
+# day.only = ymd(df.crypto$date)
+# 
+# 
+# 
+# 
+# riingo::riingo_crypto_prices(ticker = "BTCUSDT", start_date = df.crypto$date[1] - (60*60),end_date = df.crypto$date[1] + (60*60), resample_frequency = "30min")
+# 
+# # 2007-08-05
 
 # Webscraping ForexFactory --------------------------------
-ts.test = seq(ymd('2007-08-05'),ymd('2023-09-24'),by='weeks')
-
-months.test = month(ts.test)
-months.abr = month.abb
-
-months.test = months.abr[months.test]
-
-days.test = day(ts.test)
-years.test = year(ts.test)
-
-for(j in 1:length(ts.test)){
-  j=1
-  url = paste0("https://www.forexfactory.com/calendar?week=", ts.test[j])
-  
-}
-
-page = read_html(url)
-
-date = page %>% html_nodes(".date") %>% html_text()
-time = (page %>% html_nodes(".calendar__time") %>% html_text())[-1]
-currency = (page %>% html_nodes(".calendar__currency") %>% html_text())[-1]
-impact = page %>% html_nodes(".calendar__impact") %>% html_children() %>% html_attrs()
-event.title = page %>% html_nodes(".calendar__event-title") %>% html_text()
-actual = (page %>% html_nodes(".calendar__actual") %>% html_text())[-1]
-forecast = (page %>% html_nodes(".calendar__forecast") %>% html_text())[-1]
-previous = (page %>% html_nodes(".calendar__previous") %>% html_text())[-1]
-
-df = data.frame(time = time,
-                currency = currency,
-                event.title = event.title,
-                actual = actual,
-                forecast = forecast,
-                previous = previous
-)
-df$date = NA
-df$date[1] = date[1]
-
-for(i in 2:nrow(df)){
-  if(df$time[i]==""){
-    df$time[i] = df$time[i-1]
-  }
-}
-
-x = parse_date_time(df$time, "%I:%M%p")
-
-date.counter = 2
-
-for(i in 2:length(x)){
-  if(is.na(x[i])){
-    next()
-  }
-  if((x[i] < x[i-1]) == TRUE){
-    df$date[i] = date[date.counter]
-    date.counter = date.counter + 1
-  }
-}
-# --------------------------------
-
-df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData", object = "df_apr1.2007.rds")
-
-test.dates = parse_date_time(df$date, "%B %d %Y")
-
-test.datetimes = paste0(df$date, " ", df$time)
-
-test.datetimes = parse_date_time(test.datetimes, "%B %d %Y %I:%M%p")
-
-test.datetimes
-
-x = riingo::riingo_fx_prices(ticker = "audusd", start_date = "2020-01-01", resample_frequency = "30min")
+# ts.test = seq(ymd('2007-08-05'),ymd('2023-09-24'),by='weeks')
+# 
+# months.test = month(ts.test)
+# months.abr = month.abb
+# 
+# months.test = months.abr[months.test]
+# 
+# days.test = day(ts.test)
+# years.test = year(ts.test)
+# 
+# for(j in 1:length(ts.test)){
+#   j=1
+#   url = paste0("https://www.forexfactory.com/calendar?week=", ts.test[j])
+#   
+# }
+# 
+# page = read_html(url)
+# 
+# date = page %>% html_nodes(".date") %>% html_text()
+# time = (page %>% html_nodes(".calendar__time") %>% html_text())[-1]
+# currency = (page %>% html_nodes(".calendar__currency") %>% html_text())[-1]
+# impact = page %>% html_nodes(".calendar__impact") %>% html_children() %>% html_attrs()
+# event.title = page %>% html_nodes(".calendar__event-title") %>% html_text()
+# actual = (page %>% html_nodes(".calendar__actual") %>% html_text())[-1]
+# forecast = (page %>% html_nodes(".calendar__forecast") %>% html_text())[-1]
+# previous = (page %>% html_nodes(".calendar__previous") %>% html_text())[-1]
+# 
+# df = data.frame(time = time,
+#                 currency = currency,
+#                 event.title = event.title,
+#                 actual = actual,
+#                 forecast = forecast,
+#                 previous = previous
+# )
+# df$date = NA
+# df$date[1] = date[1]
+# 
+# for(i in 2:nrow(df)){
+#   if(df$time[i]==""){
+#     df$time[i] = df$time[i-1]
+#   }
+# }
+# 
+# x = parse_date_time(df$time, "%I:%M%p")
+# 
+# date.counter = 2
+# 
+# for(i in 2:length(x)){
+#   if(is.na(x[i])){
+#     next()
+#   }
+#   if((x[i] < x[i-1]) == TRUE){
+#     df$date[i] = date[date.counter]
+#     date.counter = date.counter + 1
+#   }
+# }
+# # --------------------------------
+# 
+# df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData", object = "df_apr1.2007.rds")
+# 
+# test.dates = parse_date_time(df$date, "%B %d %Y")
+# 
+# test.datetimes = paste0(df$date, " ", df$time)
+# 
+# test.datetimes = parse_date_time(test.datetimes, "%B %d %Y %I:%M%p")
+# 
+# test.datetimes
+# 
+# x = riingo::riingo_fx_prices(ticker = "audusd", start_date = "2020-01-01", resample_frequency = "30min")
 
 

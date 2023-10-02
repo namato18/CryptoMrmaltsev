@@ -9,6 +9,7 @@ library(CandleStickPattern)
 library(plotly)
 library(chron)
 library(aws.s3)
+library(dplyr)
 
 options(scipen=999)
 possible_json = possibly(.f = jsonlite::fromJSON, otherwise = 'ERROR' )
@@ -1950,6 +1951,46 @@ Color.DT = function(df){
     
     return(dt.colored)
   }
+}
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+Backtest.AV <- function(df, startDate, endDate, topic, type){
+  # df = df.comb.all
+  # topic = "blockchain"
+  # startDate = "2023-01-01"
+  # endDate = "2023-02-01"
+  # type = "CRYPTO"
+  
+  df.all.daterange = df %>%
+    filter(date >= startDate & date <= endDate)
+  
+  df.all.daterange$thirty.min.back.change = (df.all.daterange$thirty.min.back - df.all.daterange$price.news.break) / df.all.daterange$price.news.break * 100
+  df.all.daterange$thirty.min.forward.change = (df.all.daterange$thirty.min.forward - df.all.daterange$price.news.break) / df.all.daterange$price.news.break * 100
+  df.all.daterange$change.sum = df.all.daterange$thirty.min.forward.change - df.all.daterange$thirty.min.back.change
+  
+  df.all.daterange.grp = df.all.daterange %>% group_by(Topic)
+  df.all.daterange.grp = na.omit(df.all.daterange.grp)
+  
+  df.rm.dup = df.all.daterange.grp[which(!duplicated(df.all.daterange.grp[,c(1,5)])),]
+  
+  if(type == "ALL"){
+    df.filter.type = df.rm.dup
+  }else{
+    df.filter.type = df.rm.dup[grepl(pattern = type, df.rm.dup$ticker),]
+  }
+  
+  t = summarise(df.filter.type, sum.change = sum(change.sum))
+  
+  fig <- plot_ly(t, labels = ~Topic, values = ~sum.change, type = "pie")
+  
+  return(fig)
+  
+  
 }
 
 

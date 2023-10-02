@@ -89,6 +89,8 @@ stock.names = setNames(stock1,stock1)
 possibly_spot_new_order = possibly(spot_new_order, otherwise = 'ERROR')
 possibly_s3read_using = possibly(s3read_using, otherwise = 'ERROR')
 
+df.master.comb = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/AlphaVantageData", object = "df.master.comb.rds")
+df.comb.all = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/AlphaVantageData", object = "df.comb.all")
 
 # Define UI
 ui <- secure_app(
@@ -111,7 +113,8 @@ ui <- secure_app(
                         id = "tablist",
                         menuItem(text = "", tabName = "create", icon = icon("house")),
                         menuItem("", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
-                        menuItem("", tabName = 'predictNextWeek', icon = icon('chart-line'))
+                        menuItem("", tabName = 'predictNextWeek', icon = icon('chart-line')),
+                        menuItem("", tabName = 'alphaVantageBacktest', icon = icon('calendar'))
                         # menuItem("", tabName = "etherscan", icon = icon("searchengin"))
                       )
                     )
@@ -574,7 +577,32 @@ ui <- secure_app(
                   #     dataTableOutput("tradesPlaced")
                   # )
                   
-                ))
+                )),
+        tabItem(tabName = "alphaVantageBacktest",
+                fluidRow(
+                  tags$head(
+                    tags$style(type="text/css"
+                    ),
+                    tags$link(rel = "stylesheet", type = "text/css", href = "stylev1.css")
+                  ),
+                  box(title = "Backtest News Inputs", status = "primary", solidHeader = TRUE, width = 6,
+                      selectInput(inputId = "newsTopic",label = "Select a News Type", choices = list("Blockchain" = "blockchain",
+                                                                       "Earnings" = "earnings",
+                                                                       "IPO" = "ipo",
+                                                                       "Mergers and Acquisitions" = "mergers_and_acquisitions")),
+                      dateRangeInput("dateRange", label = "Select a Date Range", start = "2023-01-01" , end = "2023-09-09"),
+                      selectInput(inputId = "assetTypeAV", label = "Select an Asset Type", choices = list("All" = "ALL",
+                                                                                                          "Forex" = "FOREX",
+                                                                                                          "Crypto" = "CRYPTO",
+                                                                                                          "Stock" = "STOCK")),
+                      actionButton("generateBacktestData","Generate Backtest")
+                      ),
+                  box(title = "Backtest News Inputs", status = "primary", solidHeader = TRUE, width = 6,
+                      plotlyOutput("pieChart")
+                    
+                  )
+                )
+                )
         
         # tabItem(tabName = "etherscan",
         #         add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
@@ -1327,6 +1355,10 @@ server <- function(input, output, session) {
   #   
   #   
   # })
+  
+  observeEvent(input$generateBacktestData, {
+    output$pieChart = renderPlotly(Backtest.AV(df.comb.all, input$dateRange[1] , input$dateRange[2] , input$newsTopic, input$assetTypeAV))
+  })
   
   
 }
