@@ -1960,17 +1960,18 @@ Color.DT = function(df){
 ##############################################################
 
 Backtest.AV <- function(df, startDate, endDate, topic, type){
-  # df = df.comb.all
-  # topic = "blockchain"
-  # startDate = "2023-01-01"
-  # endDate = "2023-02-01"
-  # type = "CRYPTO"
+  df = df.comb.all
+  topic = "blockchain"
+  startDate = "2023-01-01"
+  endDate = "2023-03-01"
+  type = "CRYPTO"
   
   df.all.daterange = df %>%
-    filter(date >= startDate & date <= endDate)
+    filter(date >= startDate & date <= endDate & as.numeric(relevance_score) >= 0.5)
   
   df.all.daterange$thirty.min.back.change = (df.all.daterange$thirty.min.back - df.all.daterange$price.news.break) / df.all.daterange$price.news.break * 100
   df.all.daterange$thirty.min.forward.change = (df.all.daterange$thirty.min.forward - df.all.daterange$price.news.break) / df.all.daterange$price.news.break * 100
+  df.all.daterange$hour.forward.change = (df.all.daterange$one.hr.forward - df.all.daterange$price.news.break) / df.all.daterange$price.news.break * 100
   df.all.daterange$change.sum = df.all.daterange$thirty.min.forward.change - df.all.daterange$thirty.min.back.change
   
   df.all.daterange.grp = df.all.daterange %>% group_by(Topic)
@@ -1984,11 +1985,41 @@ Backtest.AV <- function(df, startDate, endDate, topic, type){
     df.filter.type = df.rm.dup[grepl(pattern = type, df.rm.dup$ticker),]
   }
   
-  t = summarise(df.filter.type, sum.change = sum(change.sum))
+  df.filter.type.bull = df.filter.type %>%
+    filter(ticker_sentiment_label == "Bullish" | ticker_sentiment_label == "Somewhat-Bullish")
+  df.filter.type.bear = df.filter.type %>%
+    filter(ticker_sentiment_label == "Bearish" | ticker_sentiment_label == "Somewhat-Bearish")
+  df.bull.bear.news = rbind(df.filter.type.bull, df.filter.type.bear)
   
-  fig <- plot_ly(t, labels = ~Topic, values = ~sum.change, type = "pie")
   
-  return(fig)
+  t.sent.bull = summarise(df.filter.type.bull, mean.sent = mean(as.numeric(ticker_sentiment_score)))
+  t.change.bull = summarise(df.filter.type.bull, mean.change = mean(hour.forward.change))
+  
+  t.sent.bear = summarise(df.filter.type.bear, mean.sent = mean(as.numeric(ticker_sentiment_score)))
+  t.change.bear = summarise(df.filter.type.bear, mean.change = mean(hour.forward.change))
+
+  if(length(which(t.change.bull$mean.change < 0)) > 0){
+    t.pie.bull = t.change.bull[-(which(t.change.bull$mean.change < 0)),]
+  }else{
+    t.pie.bull = t.change.bull
+  }
+  if(length(which(t.change.bear$mean.change < 0)) > 0){
+    t.pie.bear = t.change.bear[-(which(t.change.bear$mean.change > 0)),]
+  }else{
+    t.pie.bear = t.change.bear
+  }
+  
+  t.pie.bear$mean.change = abs(t.pie.bear$mean.change)
+  
+  fig.bull <- plot_ly(t.pie.bull, labels = ~Topic, values = ~mean.change, type = "pie")
+  fig.bear <- plot_ly(t.pie.bear, labels = ~Topic, values = ~mean.change, type = "pie")
+  
+  figs = list(fig.bull = fig.bull,
+              fig.bear = fig.bear,
+              tbl.bull = t.change.bull,
+              tbl.bear = t.change.bear,
+              news.feed = df.bull.bear.news)
+  return(figs)
   
   
 }
