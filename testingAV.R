@@ -213,7 +213,7 @@ tic()
 for(i in 1:length(ts.test)){
   df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/WithImpact", object = paste0("df_",week.test[i],".rds"))
   
-  if(df[1] == "ERROR"){
+  if(is.null(nrow(df))){
     print(paste0("Error'd out at: ",i))
     next()
   }else{

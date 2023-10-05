@@ -4,6 +4,12 @@ library(rvest)
 library(lubridate)
 library(tictoc)
 
+Sys.setenv(
+  "AWS_ACCESS_KEY_ID" = "AKIAZI3NHYNJ2L5YMIHV",
+  "AWS_SECRET_ACCESS_KEY" = "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",
+  "AWS_DEFAULT_REGION" = "us-east-1"
+)
+
 ########################################################
 ########################################################
 ########################################################
@@ -51,7 +57,7 @@ data.comb.rem = data.comb[-which(duplicated(names(data.comb)))]
 ########################################################
 ########################################################
 ########################################################
-######################################################## FOR CRYPTO/FOREX
+######################################################## FOR CRYPTO
 
 df.btc.historical = df.comb[grepl("red",df.comb$impact) & df.comb$actual != "" & df.comb$forecast != "" & !is.na(df.comb$Tag),]
 df.btc.historical = na.omit(df.btc.historical)
@@ -100,10 +106,89 @@ for(i in 1:nrow(df.btc.historical)){
   print(i)
 }
 df.btc.news.prices = na.omit(df.btc.historical)
-saveRDS(df.btc.news.prices, "AlphaVantageData/df.btc.news.prices.rds")
 
+tmpdir = tempdir()
+
+saveRDS(df.btc.news.prices, paste0(tmpdir,"/df.btc.news.prices.rds"))
+
+put_object(
+  file = paste0(tmpdir,"/df.btc.news.prices.rds"),
+  object = "df.btc.news.prices.rds",
+  bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices"
+)
 ########################################################
 ########################################################
 ########################################################
 ########################################################
-########################################################
+######################################################## FOR FOREX
+pair = "USDCAD"
+timeframe = c("5min","30min","60min")
+
+for(j in 1:length(timeframe)){
+  
+
+numeric_value <- as.numeric(str_extract(timeframe[j], "\\d+"))
+
+df.forex.historical = df.comb[grepl("red",df.comb$impact) & df.comb$actual != "" & df.comb$forecast != "" & !is.na(df.comb$Tag),]
+df.forex.historical = na.omit(df.forex.historical)
+
+ts = seq(ymd('2007-08-05'),ymd('2023-10-01'),by='2 weeks')
+
+forex.historical.thirty.comb = possibly_riingo_fx_prices(ticker = pair,
+                                                       start_date = ts[length(ts)] - 3,
+                                                       end_date = ts[length(ts)] + 3,
+                                                       resample_frequency = timeframe[j])[0,]
+for(i in 1:length(ts)){
+  dat = possibly_riingo_fx_prices(ticker = pair,
+                                      start_date = ts[i] - 14,
+                                      end_date = ts[i],
+                                      resample_frequency = timeframe[j])
+  if(is.null(nrow(dat))){
+    print(paste0("ERROR FOUND AT ",i))
+    next()
+  }
+  
+  forex.historical.thirty.comb = rbind(forex.historical.thirty.comb,dat)
+  print(paste0(i," of: ",length(ts)))
+}
+
+forex.historical.thirty.comb = forex.historical.thirty.comb[-which(duplicated(forex.historical.thirty.comb$date)),]
+
+df.forex.historical$one.hr.back = NA
+df.forex.historical$thirty.min.back = NA
+df.forex.historical$price.news.break = NA
+df.forex.historical$thirty.min.forward = NA
+df.forex.historical$one.hr.forward = NA
+
+for(i in 1:nrow(df.forex.historical)){
+  ind = which(as_datetime(forex.historical.thirty.comb$date) == df.forex.historical$POSIXct[i])
+  if(length(ind) == 0){
+    next()
+  }
+  
+  df.forex.historical$one.hr.back[i] = forex.historical.thirty.comb$close[ind-2]
+  df.forex.historical$thirty.min.back[i] = forex.historical.thirty.comb$close[ind-1]
+  df.forex.historical$price.news.break[i] = forex.historical.thirty.comb$close[ind]
+  df.forex.historical$thirty.min.forward[i] = forex.historical.thirty.comb$close[ind+1]
+  df.forex.historical$one.hr.forward[i] = forex.historical.thirty.comb$close[ind+2]
+  print(i)
+}
+df.forex.news.prices = na.omit(df.forex.historical)
+
+colnames(df.forex.news.prices)[c(11,12,14,15)] = c(paste0(numeric_value*2,"min.back"),
+                                                   paste0(numeric_value,"min.back"),
+                                                   paste0(numeric_value,"min.forward"),
+                                                   paste0(numeric_value*2,"min.forward"))
+
+tmpdir = tempdir()
+
+saveRDS(df.forex.news.prices, paste0(tmpdir,"/df.forex.news.prices.rds"))
+
+put_object(
+  file = paste0(tmpdir,"/df.forex.news.prices.rds"),
+  object = paste0("df.forex.news.prices.",pair,timeframe[j],".rds"),
+  bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices"
+)
+
+print(paste0("done with: ",timeframe[j]))
+}
