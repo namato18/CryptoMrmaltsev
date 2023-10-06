@@ -10,6 +10,7 @@ library(plotly)
 library(chron)
 library(aws.s3)
 library(dplyr)
+library(purrr)
 
 options(scipen=999)
 possible_json = possibly(.f = jsonlite::fromJSON, otherwise = 'ERROR' )
@@ -2024,4 +2025,71 @@ Backtest.AV <- function(df, startDate, endDate, topic, type){
   
 }
 
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+BackTestFF = function(region,topic,date.range,asset,timeframe){
+  # region = "USD"
+  # asset = "GBPUSD"
+  # timeframe = "60min"
+  # topic = "Inflation"
+  timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
+  
+  if(asset == "SPY"){
+    type = "stock"
+  }else if(asset == "BTCUSDT"){
+    type = "crypto"
+  }else{
+    type = "forex"
+  }
+  
+  df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices", object = paste0("df.",type,".news.prices.",asset,timeframe,".rds"))
+  
+  df$formatted_dates <- as.factor(format(df$POSIXct, "%B %Y"))
+  
+  df = df %>%
+    filter(currency == region & Tag == topic) %>%
+    group_by(formatted_dates)
+  
+  df.to.summarize = df[,c(5,6,11:16)]
+  colnames(df.to.summarize) = c("actual","forecast","double.back","once.back","current","once.forward","double.forward","formatted_dates")
+  
+  df.to.summarize$actual = as.numeric(sub("%","",df.to.summarize$actual))
+  df.to.summarize$forecast = as.numeric(sub("%","",df.to.summarize$forecast))
+  
+  char_cols <- sapply(df.to.summarize, is.character)
+  df.to.summarize[char_cols] = lapply(df.to.summarize[char_cols], as.numeric)
+  
+  df.summarized = summarise_all(df.to.summarize, sum)
+  
+  df.summarized$Result = "Beat"
+  df.summarized$Result[df.summarized$actual < df.summarized$forecast] = "Miss"
+  df.summarized$double.back.perc = paste0(round((df.summarized$double.back - df.summarized$current) / df.summarized$current * 100, 3),"%")
+  df.summarized$once.back.perc = paste0(round((df.summarized$once.back - df.summarized$current) / df.summarized$current * 100, 3),"%")
+  df.summarized$once.forward.perc = paste0(round((df.summarized$once.forward - df.summarized$current) / df.summarized$current * 100, 3),"%")
+  df.summarized$double.forward.perc = paste0(round((df.summarized$double.forward - df.summarized$current) / df.summarized$current * 100, 3),"%")
+  
+  df.summarized$Region = region
+  df.summarized$Topic = topic
+  df.summarized$Asset = asset
+  
+  df.summarized = df.summarized %>%
+    select(formatted_dates, Region, Topic, Asset, forecast, actual, Result, double.back.perc, once.back.perc,once.forward.perc,double.forward.perc)
+  colnames(df.summarized) = c("Month",
+                              "Region",
+                              "Topic",
+                              "Asset",
+                              "Forecast",
+                              "Actual",
+                              "Result",
+                              paste0(timeframe.numeric*2,"min Back % Change"),
+                              paste0(timeframe.numeric,"min Back % Change"),
+                              paste0(timeframe.numeric,"min Forward % Change"),
+                              paste0(timeframe.numeric*2,"min Forward % Change")
+                              )
+  return(df.summarized)
+}
 

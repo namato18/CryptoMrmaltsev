@@ -114,7 +114,8 @@ ui <- secure_app(
                         menuItem(text = "", tabName = "create", icon = icon("house")),
                         menuItem("", tabName = 'predictMultiple', icon = icon('money-bill-trend-up')),
                         menuItem("", tabName = 'predictNextWeek', icon = icon('chart-line')),
-                        menuItem("", tabName = 'alphaVantageBacktest', icon = icon('calendar'))
+                        # menuItem("", tabName = 'alphaVantageBacktest', icon = icon('calendar')),
+                        menuItem("", tabName = "forexFactoryBacktest", icon = icon('calendar'))
                         # menuItem("", tabName = "etherscan", icon = icon("searchengin"))
                       )
                     )
@@ -578,808 +579,851 @@ ui <- secure_app(
                   # )
                   
                 )),
-        tabItem(tabName = "alphaVantageBacktest",
+        # tabItem(tabName = "alphaVantageBacktest",
+        #         fluidRow(
+        #           tags$head(
+        #             tags$style(type="text/css"
+        #             ),
+        #             tags$link(rel = "stylesheet", type = "text/css", href = "stylev1.css")
+        #           ),
+        #           box(title = "Backtest News Inputs", status = "primary", solidHeader = TRUE, width = 6,
+        #               # selectInput(inputId = "newsTopic",label = "Select a News Type", choices = list("Blockchain" = "blockchain",
+        #               #                                                                                "Earnings" = "earnings",
+        #               #                                                                                "IPO" = "ipo",
+        #               #                                                                                "Mergers and Acquisitions" = "mergers_and_acquisitions")),
+        #               dateRangeInput("dateRange", label = "Select a Date Range", start = "2023-01-01" , end = "2023-09-09"),
+        #               selectInput(inputId = "assetTypeAV", label = "Select an Asset Type", choices = list("All" = "ALL",
+        #                                                                                                   "Forex" = "FOREX",
+        #                                                                                                   "Crypto" = "CRYPTO",
+        #                                                                                                   "Stock" = "STOCK")),
+        #               actionButton("generateBacktestData","Generate Backtest")
+        #           ),
+        #           box(title = "News Feed", status = "primary", solidHeader = TRUE, width = 12,
+        #               dataTableOutput("newsFeed")
+        #           ),
+        #           column(width = 6,
+        #                  box(title = "Backtest Bullish News", status = "primary", solidHeader = TRUE, width = NULL,
+        #                      dataTableOutput("tableBull"),
+        #                      plotlyOutput("pieChartBull")
+        #                  )
+        #           ),
+        #           column(width = 6,
+        #                  box(title = "Backtest Bearish News", status = "primary", solidHeader = TRUE, width = NULL,
+        #                      dataTableOutput("tableBear"),
+        #                      plotlyOutput("pieChartBear")
+        #                  )
+        #           )
+        #         )
+        # ),
+        tabItem(tabName = "forexFactoryBacktest",
                 fluidRow(
                   tags$head(
                     tags$style(type="text/css"
                     ),
                     tags$link(rel = "stylesheet", type = "text/css", href = "stylev1.css")
                   ),
+                  
                   box(title = "Backtest News Inputs", status = "primary", solidHeader = TRUE, width = 6,
-                      # selectInput(inputId = "newsTopic",label = "Select a News Type", choices = list("Blockchain" = "blockchain",
-                      #                                                                                "Earnings" = "earnings",
-                      #                                                                                "IPO" = "ipo",
-                      #                                                                                "Mergers and Acquisitions" = "mergers_and_acquisitions")),
-                      dateRangeInput("dateRange", label = "Select a Date Range", start = "2023-01-01" , end = "2023-09-09"),
-                      selectInput(inputId = "assetTypeAV", label = "Select an Asset Type", choices = list("All" = "ALL",
-                                                                                                          "Forex" = "FOREX",
-                                                                                                          "Crypto" = "CRYPTO",
-                                                                                                          "Stock" = "STOCK")),
-                      actionButton("generateBacktestData","Generate Backtest")
+                      selectInput("newsRegion", label = "Select a News Region", choices = list("US" = "USD",
+                                                                                               "EU" = "EUR")),
+                      selectInput("newsTopic", "Select a Topic to Examine", choices = list("Growth" = "Growth",
+                                                                                           "Inflation" = "Inflation",
+                                                                                           "Employment" = "Employment",
+                                                                                           "Central Bank" = "Central Bank",
+                                                                                           "Bonds" = "Bonds",
+                                                                                           "Housing" = "Housing",
+                                                                                           "Consumer Surveys",
+                                                                                           "Business Surveys" = "Business Surveys",
+                                                                                           "Speeches" = "Speeches")),
+                      
+                      dateRangeInput("dateRangeFF", label = "Select a Date Range", start = "2015-01-01" , end = "2023-09-09"),
+                      selectInput("assetType", "Select an Asset Type", choices = list("BTC" = "BTCUSDT",
+                                                                                      "USD" = "USDCAD",
+                                                                                      "GBP" = "GBPUSD",
+                                                                                      "AUD" = "AUDUSD",
+                                                                                      "S&P 500" = "SPY")),
+                      selectInput("timeframeFF","Select a Timeframe to Analyze", choices = list("5 Minutes" = "5min",
+                                                                                                "30 Minutes" = "30min",
+                                                                                                "1 Hour" = "60min")),
+                      actionButton("generateBacktestFF", "Generate Backtest")
+                      
                   ),
-                  box(title = "News Feed", status = "primary", solidHeader = TRUE, width = 12,
-                      dataTableOutput("newsFeed")
-                  ),
-                  column(width = 6,
-                         box(title = "Backtest Bullish News", status = "primary", solidHeader = TRUE, width = NULL,
-                             dataTableOutput("tableBull"),
-                             plotlyOutput("pieChartBull")
-                         )
-                  ),
-                  column(width = 6,
-                         box(title = "Backtest Bearish News", status = "primary", solidHeader = TRUE, width = NULL,
-                             dataTableOutput("tableBear"),
-                             plotlyOutput("pieChartBear")
-                         )
+                  box(title = "Backtest Selected Daterange by Month", status = "primary", solidHeader = TRUE, width = 12,
+                    selectInput("subCategory","Select a Sub-Category to Filter", choices = list("All" = "All")),
+                    dataTableOutput("ffBacktestTable")
                   )
+                  
                 )
         )
-                
-                # tabItem(tabName = "etherscan",
-                #         add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
-                #         
-                #         column(width = 6,
-                #                box(title = "Select a Coin to Investigate", status = "primary", solidHeader = TRUE,width=NULL,
-                #                    selectInput(inputId = "selectTopCoin", "Select a Coin", choices = token.names.list)
-                #                ),
-                #                box(title = "Holder Info", status = "primary", solidHeader = TRUE,width=NULL,
-                #                    dataTableOutput("holderInfo")
-                #                )
-                #         ),
-                #         
-                #         box(title = "Detailed Holder Info", status = "primary", solidHeader = TRUE,width=12,
-                #             "select a holder wallet before clicking the button below. Wait ~5 seconds before grabbing new data.",
-                #             br(),
-                #             actionButton("generateHolderInfo", "Grab Detailed Holder Information"),
-                #             dataTableOutput("detailedHolderInfo")
-                #         ),
-                #         valueBoxOutput("balance", width = 4),
-                #         valueBoxOutput("status", width = 4),
-                #         valueBoxOutput("dynamics", width = 4),
-                #         valueBoxOutput("SevenDayChange", width = 4),
-                #         valueBoxOutput("ThirtyDayChange", width = 4),
-                #         valueBoxOutput("percentHeld", width = 4)
-                #         
-                #         
-                #         
-                #         
-                # )
-        )
+        
+        # tabItem(tabName = "etherscan",
+        #         add_busy_spinner(spin = "circle", color = "blue", height = "100px", width="100px", position = "bottom-right"),
+        #         
+        #         column(width = 6,
+        #                box(title = "Select a Coin to Investigate", status = "primary", solidHeader = TRUE,width=NULL,
+        #                    selectInput(inputId = "selectTopCoin", "Select a Coin", choices = token.names.list)
+        #                ),
+        #                box(title = "Holder Info", status = "primary", solidHeader = TRUE,width=NULL,
+        #                    dataTableOutput("holderInfo")
+        #                )
+        #         ),
+        #         
+        #         box(title = "Detailed Holder Info", status = "primary", solidHeader = TRUE,width=12,
+        #             "select a holder wallet before clicking the button below. Wait ~5 seconds before grabbing new data.",
+        #             br(),
+        #             actionButton("generateHolderInfo", "Grab Detailed Holder Information"),
+        #             dataTableOutput("detailedHolderInfo")
+        #         ),
+        #         valueBoxOutput("balance", width = 4),
+        #         valueBoxOutput("status", width = 4),
+        #         valueBoxOutput("dynamics", width = 4),
+        #         valueBoxOutput("SevenDayChange", width = 4),
+        #         valueBoxOutput("ThirtyDayChange", width = 4),
+        #         valueBoxOutput("percentHeld", width = 4)
+        #         
+        #         
+        #         
+        #         
+        # )
       )
-      
-      
     )
+    
+    
+  )
+)
+
+# Define server logic
+server <- function(input, output, session) {
+  
+  dateTime = reactiveVal(Sys.time())
+  output$timer = renderText(paste0("Time reamining in this candle: ",dateTime()))
+  
+  
+  userpass.df =  s3read_using(FUN = readRDS, bucket = "cryptomlbucket/mlprophet_users", object = "userpass.df.rds")
+  usernames = userpass.df$user
+  passwords = userpass.df$password
+  
+  credentials <- data.frame(
+    user = usernames,
+    password = passwords,
+    stringsAsFactors = FALSE
   )
   
-  # Define server logic
-  server <- function(input, output, session) {
-    
-    dateTime = reactiveVal(Sys.time())
-    output$timer = renderText(paste0("Time reamining in this candle: ",dateTime()))
-    
-    
-    userpass.df =  s3read_using(FUN = readRDS, bucket = "cryptomlbucket/mlprophet_users", object = "userpass.df.rds")
-    usernames = userpass.df$user
-    passwords = userpass.df$password
-    
-    credentials <- data.frame(
-      user = usernames,
-      password = passwords,
-      stringsAsFactors = FALSE
-    )
-    
-    res_auth <- secure_server(
-      check_credentials = check_credentials(credentials)
-    )
-    output$auth_output <- renderPrint({
-      reactiveValuesToList(res_auth)$user
-    })
-    
-    observe({
-      invalidateLater(1000, session)
-      isolate({
-        if(is.null(input$timeframePredict)){
-          
-        }else{
-          dateTime(getTimeRemaining2(input$timeframePredict, input$selectTypeMult))
-        }
-        # dateTime(dateTime()-1)
-      })
-      
-      # if(is.null(reactiveValuesToList(res_auth)$user)){
-      #   
-      # }else if(reactiveValuesToList(res_auth)$user == 'nick'){
-      #   # MINE
-      #   
-      #   secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
-      #   api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
-      #   binance::authenticate(key = api_key,secret = secret)
-      #   binance::base_url("https://api.binance.us")
-      #   
-      # }else if(reactiveValuesToList(res_auth)$user == 'gentlemam1'){
-      #   #Gentlemam
-      #   secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
-      #   api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
-      #   binance::authenticate(key = api_key,secret = secret)
-      #   binance::base_url("https://api.binance.com")
-      # }else if(reactiveValuesToList(res_auth)$user == 'gentlemam2'){
-      #   #Gentlemam
-      #   secret = "KECWzTynzt47MdHyFdY28l06G43odgzjXyOKf52VaiA4mEs7x68MTRHpLNl2XH0E"
-      #   api_key = "3VSV3sbcbDS5DFnYHnpqqKZwQOjFG5hiFXEB7r6Kaev0wTBDQlvyEpOLFZgAhZZD"
-      #   binance::authenticate(key = api_key,secret = secret)
-      #   binance::base_url("https://api.binance.com")
-      # }else if(reactiveValuesToList(res_auth)$user == 'gentlemam3'){
-      #   #Gentlemam
-      #   secret = "xghtE9HU3aNHkMojdVe3jxgAzBu5Xz0EqiuAoifbM9b0rY09KjZntuSJzsCj5gvC"
-      #   api_key = "HbKcjXOHLS0yseTvMnwX7jxltI0ugk2ZXoiYZHeDRZr9b2XWbiCBkOODsPu6xpSp"
-      #   binance::authenticate(key = api_key,secret = secret)
-      #   binance::base_url("https://api.binance.com")
-      # }
-      # output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
-      # output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances()))
-      # output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
-      
-      # x = aws.s3::get_bucket_df("cryptomlbucket")
-      
-      # x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-      # coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-      # 
-      #   
-      #   df.coins.running = data.frame(User = character(),
-      #                                 Timeframe = character(),
-      #                                 Coins = character(),
-      #                                 Target = character(),
-      #                                 Confidence = character(),
-      #                                 Percentage = character(),
-      #                                 TakeProfit = character(),
-      #                                 StopLoss = character(),
-      #                                 Active = character())
-      #   for(z in 1:length(coins.running)){
-      #     dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
-      #     df.coins.running = rbind(df.coins.running, dfx)
-      #   }
-      #   # if(length(coins.running) != 0){
-      #   y = data.frame(Coins = coins.running)
-      #   if(length(coins.running > 0)){
-      #     output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
-      #   }else{
-      #     output$activeAutomationInfo = NULL
-      #   }
-      #   # output$currentAutomation = renderDataTable(datatable(y))
-      #   # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
-      #   # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
-      #   
-      #   #}
-      # 
-      # 
-      
-      
-    })
-    
-    
-    # user = res_auth$user
-    
-    # .GlobalEnv = environment()
-    # Read in functions
-    source("DogeCoinML.R")
-    
-    output$decimalsAllowed = renderText(paste0(coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance], " decimal places allowed."))
-    
-    output$timeRemaining = renderText(paste0("Please note there is ",getTimeRemaining(input$timeframePredict)," before the current candle closes! displayed predictions are for the current candle!"))
-    output$TVPrediction = NULL
-    
-    observeEvent(input$action3, {
-      showModal(modalDialog("Predicting Most Likely...", footer = NULL))
-      on.exit(removeModal())
-      all.bst.names = list.files(path = "bsts", pattern = ".rds")
-      all.bst.numbers = str_match(string = all.bst.names, pattern = "bst_(.*)\\.")[,2]
-      all.bst.path = list.files(path = "bsts", pattern = ".rds", full.names = TRUE)
-      all.bst = lapply(all.bst.path, readRDS)
-      assign('all.bst.numbers',all.bst.numbers,.GlobalEnv)
-      assign('all.bst',all.bst,.GlobalEnv)
-      
-      predict.best(0.3, all.bst, all.bst.names)
-      
-      all.predictions = round(all.predictions, digits = 4)
-      max.pred = which(all.predictions == max(all.predictions))
-      max.bst = all.bst.numbers[max.pred]
-      
-      output$mostLikely = renderText(paste0("The most probable outcome over the next 24 hours is a change of ",max.bst,"% or more."))
-      output$percentChance = renderText(paste0(max(all.predictions)," Probability Predicted"))
-    })
-    
-    
-    observeEvent(input$action1, {
-      tags$head(tags$style("#modalGen .modal-header {background-color: #17202a; text-align: center}"))
-      showModal(tags$div(id="modalGen",modalDialog(title= tags$div(HTML(paste(
-        "cyl = ",
-        tags$span("Generating Model...", style="color:black")
-      ))),
-      footer = NULL)))
-      on.exit(removeModal())
-      if(input$slider1 == 0){
+  res_auth <- secure_server(
+    check_credentials = check_credentials(credentials)
+  )
+  output$auth_output <- renderPrint({
+    reactiveValuesToList(res_auth)$user
+  })
+  
+  observe({
+    invalidateLater(1000, session)
+    isolate({
+      if(is.null(input$timeframePredict)){
         
       }else{
-        createModel(input$selectType,input$slider1, input$slider2, input$select, input$timeframe, input$slider1)
+        dateTime(getTimeRemaining2(input$timeframePredict, input$selectTypeMult))
       }
-      # output$OverallAccuracy = renderInfoBox({
-      #   infoBox("Overall Accuracy",paste0(round(overall.accuracy, digits = 2), "%"), icon = icon('check'))
-      #   })
-      output$precisionBox = renderValueBox({
-        valueBox(value = paste0(precision,"%"), subtitle = "Precision Score", icon = icon("bullseye"))
-      })
-      # output$recallBox = renderValueBox({
-      #   valueBox(value = paste0(recall,"%"), subtitle = "Recall Score", icon = icon("circle-xmark"))
-      # })
-      # output$f1Box = renderValueBox({
-      #   valueBox(value = f1, subtitle = "F1 Score", icon = icon("check"))
-      # })
-      output$totalData = renderValueBox({
-        valueBox(value = nrow(compare), subtitle = "Number of Candles Backtested", icon = icon("vials"))
-      })
-      output$predictedHits = renderValueBox({
-        valueBox(value = nrow(compare[compare$decision == 1,]), subtitle = "Predicted Buy Signals", icon = icon("vials"))
-      })
-      # output$Buy = renderInfoBox({infoBox("Profitable Trades", paste0(round(yes.buy.correct.perc, digits = 2), "%"), icon = icon("thumbs-up"))
-      # })
-      # output$SumPercentage = renderInfoBox({
-      #   infoBox("Sum Percentage", paste0(round(sum.percentage, digits = 2), "%"),icon = icon("money-bill-trend-up"))
-      #   })
-      # # output$DontBuy = renderInfoBox({infoBox("'Don't Buy' Correct", paste0(round(no.buy.correct.perc, digits = 2),"%"),icon = icon("thumbs-down"))
-      # #   })
-      # output$Predictions = renderInfoBox({infoBox("Number of Predictions", paste0(nrow(compare)))
-      # })
-      # output$Hits = renderInfoBox({infoBox("Number of BUYS", paste0(nrow(compare[compare$Signal == 'DID BUY',])))
-      # })
-      # 
-      # colnames(compare) = c('Actual', 'Actual High', 'Actual Low','Actual Close', 'Confidence Score', 'Signal', 'profit')
-      
-      
-      
-      
-      compare2$Actual.Percent.High = paste0(compare2$Actual.Percent.High,"%")
-      compare2$Actual.Percent.Low = paste0(compare2$Actual.Percent.Low,"%")
-      compare2$Actual.Percent.Close = paste0(compare2$Actual.Percent.Close,"%")
-      
-      compare2$Signal[compare2$Signal == 1] = "DID BUY"
-      compare2$Signal[compare2$Signal == 0] = "DIDN'T BUY"
-      
-      compare2$Actual[compare2$Actual == 0] = 'MISSED TARGET'
-      compare2$Actual[compare2$Actual == 1] = 'HIT TARGET'
-      
-      colnames(compare2) = c("Actual","Actual High","Actual Low","Actual Close","Confidence Score", "Signal","profit")
-      
-      table1.colored = datatable(compare2, rownames = FALSE, options = list(pageLength = 20,
-                                                                            columnDefs = list(list(targets = 6, visible = FALSE))
-                                                                            
-      ), style = "bootstrap") %>%
-        formatStyle('Actual','profit',
-                    backgroundColor = styleEqual(c(0,1), c('darkred','lightgreen'))) %>%
-        formatStyle('Signal',
-                    backgroundColor = styleEqual(c("DIDN'T BUY","DID BUY"), c('darkred','lightgreen')))
-      
-      
-      
-      output$table1 = renderDataTable(table1.colored)
-      # output$modelPlot = renderPlot(hist(compare$Confidence.Score))
-      output$modelPlot = renderPlot(ggplot(data = compare, aes(x = pred)) + geom_histogram(colour = "blue", alpha = 0.3))
+      # dateTime(dateTime()-1)
     })
     
-    observeEvent(input$action2, {
-      predict.tomorrow(0.3, input$select)
-      output$textToday = renderText(paste0("Probability of: ",round(predict.now, digits = 4)))
-      output$predict = renderInfoBox({
-        infoBox("Predicted Probability",round(predict.now, digits = 4))
-      })
-    })
+    # if(is.null(reactiveValuesToList(res_auth)$user)){
+    #   
+    # }else if(reactiveValuesToList(res_auth)$user == 'nick'){
+    #   # MINE
+    #   
+    #   secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
+    #   api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
+    #   binance::authenticate(key = api_key,secret = secret)
+    #   binance::base_url("https://api.binance.us")
+    #   
+    # }else if(reactiveValuesToList(res_auth)$user == 'gentlemam1'){
+    #   #Gentlemam
+    #   secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
+    #   api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
+    #   binance::authenticate(key = api_key,secret = secret)
+    #   binance::base_url("https://api.binance.com")
+    # }else if(reactiveValuesToList(res_auth)$user == 'gentlemam2'){
+    #   #Gentlemam
+    #   secret = "KECWzTynzt47MdHyFdY28l06G43odgzjXyOKf52VaiA4mEs7x68MTRHpLNl2XH0E"
+    #   api_key = "3VSV3sbcbDS5DFnYHnpqqKZwQOjFG5hiFXEB7r6Kaev0wTBDQlvyEpOLFZgAhZZD"
+    #   binance::authenticate(key = api_key,secret = secret)
+    #   binance::base_url("https://api.binance.com")
+    # }else if(reactiveValuesToList(res_auth)$user == 'gentlemam3'){
+    #   #Gentlemam
+    #   secret = "xghtE9HU3aNHkMojdVe3jxgAzBu5Xz0EqiuAoifbM9b0rY09KjZntuSJzsCj5gvC"
+    #   api_key = "HbKcjXOHLS0yseTvMnwX7jxltI0ugk2ZXoiYZHeDRZr9b2XWbiCBkOODsPu6xpSp"
+    #   binance::authenticate(key = api_key,secret = secret)
+    #   binance::base_url("https://api.binance.com")
+    # }
+    # output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
+    # output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances()))
+    # output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
     
-    observeEvent(input$action4, {
-      tags$head(tags$style("#modalPred .modal-header {background-color: #17202a; text-align: center}"))
-      showModal(tags$div(id="modalPred",modalDialog(title= tags$div(HTML(paste(
-        "cyl = ",
-        tags$span("Generating Predictions...", style="color:black")
-      ))),
-      footer = NULL)))
-      on.exit(removeModal())
-      x = input$checkGroup
-      updateSelectInput(session = session, inputId = 'candlestickInput', choices = x, selected = head(x,1))
-      
-      if(input$selectTypeMult == "Crypto" | input$selectTypeMult == "Stocks"){
-        predict.tomorrow.multiple(input$selectTypeMult,input$checkGroup, input$timeframePredict, input$slider3, .GlobalEnv)
-      }else{
-        predict.next.bh.bl.tar(input$checkGroup, input$timeframePredict, input$slider3)
-      }
-      
-      
-      dt.colored1 = Color.DT(predictions.df.indi1)
-      dt.colored2 = Color.DT(predictions.df.indi2)
-      dt.colored3 = Color.DT(predictions.df.indi3)
-      dt.colored4 = Color.DT(predictions.df.indi4)
-      
-      output$multipleOutput1 = renderDataTable(dt.colored1)
-      
-      
-      if(is.null(dt.colored2)){
-        shinyjs::hide("multipleOutput2")
-      }else{
-        shinyjs::show("multipleOutput2")
-        output$multipleOutput2 = renderDataTable(dt.colored2)
-      }
-      if(is.null(dt.colored3)){
-        shinyjs::hide("multipleOutput3")
-      }else{
-        shinyjs::show("multipleOutput3")
-        output$multipleOutput3 = renderDataTable(dt.colored3)
-      }
-      if(is.null(dt.colored4)){
-        shinyjs::hide("multipleOutput4")
-      }else{
-        shinyjs::show("multipleOutput4")
-        output$multipleOutput4 = renderDataTable(dt.colored4)
-      }
-      
-      
-      output$binancePredictionTable = renderDataTable(dt.colored)
-      output$candlestickPlot = renderPlotly(createCandlePlot(input$candlestickInput))
-    })
+    # x = aws.s3::get_bucket_df("cryptomlbucket")
     
-    observeEvent(input$action5, {
-      # showModal(modalDialog("Generating predictions...", footer = NULL))
-      output$nextWeekOutput = renderPlot(predict_week(tolower(input$selectNextWeek), input$selectTimeFrame, input$selectTypeWeek))
-      output$forecastWeekOutput = renderDataTable(datatable(week.forecast.df, style = "bootstrap", rownames = FALSE))
-      
-      # on.exit(removeModal())
-      
-    })
-    
-    observeEvent(input$action6, {
-      tags$head(tags$style("#modalPred2 .modal-header {background-color: #17202a; text-align: center}"))
-      showModal(tags$div(id="modalPred2",modalDialog(title= tags$div(HTML(paste(
-        "cyl = ",
-        tags$span("Generating Predictions...", style="color:black")
-      ))),
-      footer = NULL)))
-      on.exit(removeModal())
-      
-      if(is.null(input$tvDataDrop)){
-        return(NULL)
-      }else{
-        df = input$tvDataDrop
-      }
-      
-      output$TVPrediction = renderDataTable(build.TV.model(df, input$tvTimeFrame))
-      # output$TVPrediction = renderDataTable(predictions.df.comb)
-      
-    })
-    
-    observeEvent(input$selectall, {
-      updateCheckboxGroupInput(session = session, 'checkGroup',choices = checkbox_list, selected = checkbox_list)
-      
-    })
-    
-    # observeEvent(input$getLivePrice, {
-    #   output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
-    # })
-    
-    # observeEvent(input$submitBinance, {
-    #   x = possibly_spot_new_order(
-    #     order_type = input$selectTypeBinance,
-    #     symbol = input$selectCoinBinance,
-    #     side = input$selectSideBinance,
-    #     quantity = input$tradeQuantity,
-    #     test = FALSE
-    #   )
-    #   if(x[1] == 'ERROR'){
-    #     shinyalert("Order Not Placed",
-    #                "Check to see if you used to many decimals or if the minimum order requirements have not been met!",
-    #                type = 'error')
+    # x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+    # coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+    # 
+    #   
+    #   df.coins.running = data.frame(User = character(),
+    #                                 Timeframe = character(),
+    #                                 Coins = character(),
+    #                                 Target = character(),
+    #                                 Confidence = character(),
+    #                                 Percentage = character(),
+    #                                 TakeProfit = character(),
+    #                                 StopLoss = character(),
+    #                                 Active = character())
+    #   for(z in 1:length(coins.running)){
+    #     dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+    #     df.coins.running = rbind(df.coins.running, dfx)
+    #   }
+    #   # if(length(coins.running) != 0){
+    #   y = data.frame(Coins = coins.running)
+    #   if(length(coins.running > 0)){
+    #     output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
     #   }else{
-    #     shinyalert("Success",
-    #                "Your order was successfully placed!",
-    #                type = 'success')
+    #     output$activeAutomationInfo = NULL
     #   }
-    # 
-    #   output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
-    # })
-    
-    # observeEvent(input$percentSliderBinance, {
-    #   current_balance = spot_account_balances()
-    #   free_usdt = current_balance$free[current_balance$asset == 'USDT']
-    #   percentage = (input$percentSliderBinance / 100)
-    #   quantity_usdt = free_usdt * percentage
-    #   
-    #   current_coin_price = round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4)
-    #   quantity_coin = round(quantity_usdt / current_coin_price, digits = coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance])
-    #   updateNumericInput(session = session, inputId = 'tradeQuantity',label = 'Quantity',value = quantity_coin, min = 0, step = 0.1)
-    # })
-    # 
-    
-    # observeEvent(input$checkGroupBinance, {
-    #   vol1 = riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
-    #   vol1 = vol1[-1,]
-    #   vol2 = riingo_crypto_prices(input$checkGroupBinance,start_date = Sys.Date() - 2,end_date = Sys.Date(), resample_frequency = '5min')
-    # 
-    #   vol = rbind(vol2, vol1)
-    #   vol = vol[nrow(vol)-25:nrow(vol),]
-    #   m.vol = mean(vol$volume)
-    #   vol.now = vol$volume[(nrow(vol)-1)]
-    # 
-    #   vol.compare = (vol.now/m.vol * 100) - 100
-    # 
-    #   output$volumeGauge = renderGauge({
-    #     gauge(vol.compare,
-    #           min = -100,
-    #           max = 100,
-    #           sectors = gaugeSectors(
-    #             success = c(20, 100),
-    #             warning = c(-20, 20),
-    #             danger = c(-100, -20)))
-    #   })
-    # })
-    # 
-    
-    
-    # observeEvent(input$submitBinanceAutomation, {
-    #   
-    #   x = data.frame(User = reactiveValuesToList(res_auth)$user,
-    #                  Timeframe = input$timeframeAutomation,
-    #                  Coins = input$checkGroupBinance,
-    #                  Target = input$sliderAutomationTarget,
-    #                  Confidence = input$confidenceThresholdAutomation,
-    #                  Percentage = input$sliderBalanceUsed,
-    #                  TakeProfit = input$takeProfitBinanceAutomation,
-    #                  StopLoss = (input$stopLossBinanceAutomation / 100) * input$takeProfitBinanceAutomation,
-    #                  Active = TRUE
-    #                  )
-    #   saveRDS(x, file = paste0(tempdir(), "/x.rds"))
-    # 
-    #   aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
-    # 
-    #   put_object(
-    #     file = file.path(tempdir(), "x.rds"),
-    #     object = paste0(input$checkGroupBinance,".rds"),
-    #     bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
-    #   )
-    #   
-    #   x = aws.s3::get_bucket_df("cryptomlbucket")
-    #   
-    #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-    #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    #   if(length(coins.running) != 0){
-    #     y = data.frame(Coins = coins.running)
-    #     # output$currentAutomation = renderDataTable(datatable(y))
-    #   }
-    #   
+    #   # output$currentAutomation = renderDataTable(datatable(y))
     #   # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
     #   # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
     #   
-    #   x = aws.s3::get_bucket_df("cryptomlbucket")
-    #   
-    #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-    #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    #   
+    #   #}
     # 
-    #     df.coins.running = data.frame(User = character(),
-    #                                   Timeframe = character(),
-    #                                   Coins = character(),
-    #                                   Target = character(),
-    #                                   Confidence = character(),
-    #                                   Percentage = character(),
-    #                                   TakeProfit = character(),
-    #                                   StopLoss = character(),
-    #                                   Active = character())
-    #     for(z in 1:length(coins.running)){
-    #       dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
-    #       df.coins.running = rbind(df.coins.running, dfx)
-    #     }
-    #     if(length(coins.running > 0)){
-    #       output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
-    #     }else{
-    #       output$activeAutomationInfo = NULL
-    #     }    
-    #   
     # 
-    #   
-    #   shinyalert("Success",
-    #              "Your Automation Was Successfully Started!",
-    #              type = 'success')
-    # })
-    # 
-    # observeEvent(input$cancelBinanceAutomation, {
-    #   
-    #   # x = data.frame(User = reactiveValuesToList(res_auth)$user,
-    #   #                Timeframe = input$timeframeAutomation,
-    #   #                Coins = input$checkGroupBinance,
-    #   #                Target = input$sliderAutomationTarget,
-    #   #                Confidence = input$confidenceThresholdAutomation,
-    #   #                Percentage = input$sliderBalanceUsed,
-    #   #                TakeProfit = input$takeProfitBinanceAutomation,
-    #   #                StopLoss = input$stopLossBinanceAutomation,
-    #   #                Active = FALSE
-    #   # )
-    #   # saveRDS(x, file = paste0(tempdir(), "/x.rds"))
-    #   # 
-    #   # aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
-    #   # 
-    #   # put_object(
-    #   #   file = file.path(tempdir(), "x.rds"),
-    #   #   object = paste0(input$checkGroupBinance,".rds"),
-    #   #   bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
-    #   # )
-    #   aws.s3::delete_object(object = paste0(input$checkGroupBinance,".rds"), bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user))
-    #   x = aws.s3::get_bucket_df("cryptomlbucket")
-    #   
-    #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-    #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    #   # if(length(coins.running) != 0){
-    #     y = data.frame(Coins = coins.running)
-    #     # output$currentAutomation = renderDataTable(datatable(y))
-    #     # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
-    #     # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
-    #     
-    #     x = aws.s3::get_bucket_df("cryptomlbucket")
-    #     
-    #     x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-    #     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    # 
-    #       df.coins.running = data.frame(User = character(),
-    #                                     Timeframe = character(),
-    #                                     Coins = character(),
-    #                                     Target = character(),
-    #                                     Confidence = character(),
-    #                                     Percentage = character(),
-    #                                     TakeProfit = character(),
-    #                                     StopLoss = character(),
-    #                                     Active = character())
-    #       for(z in 1:length(coins.running)){
-    #         dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
-    #         df.coins.running = rbind(df.coins.running, dfx)
-    #       }
-    #       if(length(coins.running > 0)){
-    #         output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
-    #       }else{
-    #         output$activeAutomationInfo = NULL
-    #       }      
-    # 
-    #   # }
-    #   
-    #   shinyalert("Success",
-    #              "Your Automation Was Successfully Stopped!",
-    #              type = 'success')
-    # })
-    # # observeEvent(input$selectTradesPlaced, {
-    # #   y = binance::spot_trades_list(symbol=input$selectTradesPlaced)
-    # #   if(!is.null(y)){
-    # #     y = y %>%
-    # #       select(symbol, time, price, qty, commission, commission_asset, side)
-    # #     output$tradesPlaced = renderDataTable(datatable(y))
-    # #   }
-    # # 
-    # # })
-    # 
-    # # observeEvent(input$selectActiveAutomation, {
-    # #   x = aws.s3::get_bucket_df("cryptomlbucket")
-    # #   
-    # #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
-    # #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
-    # # 
-    # #     df.coins.running = data.frame(User = character(),
-    # #                                   Timeframe = character(),
-    # #                                   Coins = character(),
-    # #                                   Target = character(),
-    # #                                   Confidence = character(),
-    # #                                   Percentage = character(),
-    # #                                   TakeProfit = character(),
-    # #                                   StopLoss = character(),
-    # #                                   Active = character())
-    # #     for(z in 1:length(coins.running)){
-    # #       dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
-    # #       df.coins.running = rbind(df.coins.running, dfx)
-    # #     }
-    # #     output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
-    # #   
-    # # })
-    # 
-    observeEvent(input$timeframe,{
-      if(input$selectType == "Crypto" | input$selectType == "Stocks"){
-        if(input$timeframe == "15min" | input$timeframe == "1hour"){
-          updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = -1, max = 1, step = 0.1, value = 0.1)
-        }else if(input$timeframe == "2hour"){
-          updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min =-2, max = 2, step = 0.2, value = 0.2)
-        }else{
-          updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = -3, max = 3, step = 0.2, value = 0.2)
-        }
-      }else{
-        updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = -0.5, max = 0.5, step = 0.05, value = 0.05)
-      }
+    
+    
+  })
+  
+  
+  # user = res_auth$user
+  
+  # .GlobalEnv = environment()
+  # Read in functions
+  source("DogeCoinML.R")
+  
+  output$decimalsAllowed = renderText(paste0(coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance], " decimal places allowed."))
+  
+  output$timeRemaining = renderText(paste0("Please note there is ",getTimeRemaining(input$timeframePredict)," before the current candle closes! displayed predictions are for the current candle!"))
+  output$TVPrediction = NULL
+  
+  observeEvent(input$action3, {
+    showModal(modalDialog("Predicting Most Likely...", footer = NULL))
+    on.exit(removeModal())
+    all.bst.names = list.files(path = "bsts", pattern = ".rds")
+    all.bst.numbers = str_match(string = all.bst.names, pattern = "bst_(.*)\\.")[,2]
+    all.bst.path = list.files(path = "bsts", pattern = ".rds", full.names = TRUE)
+    all.bst = lapply(all.bst.path, readRDS)
+    assign('all.bst.numbers',all.bst.numbers,.GlobalEnv)
+    assign('all.bst',all.bst,.GlobalEnv)
+    
+    predict.best(0.3, all.bst, all.bst.names)
+    
+    all.predictions = round(all.predictions, digits = 4)
+    max.pred = which(all.predictions == max(all.predictions))
+    max.bst = all.bst.numbers[max.pred]
+    
+    output$mostLikely = renderText(paste0("The most probable outcome over the next 24 hours is a change of ",max.bst,"% or more."))
+    output$percentChance = renderText(paste0(max(all.predictions)," Probability Predicted"))
+  })
+  
+  
+  observeEvent(input$action1, {
+    tags$head(tags$style("#modalGen .modal-header {background-color: #17202a; text-align: center}"))
+    showModal(tags$div(id="modalGen",modalDialog(title= tags$div(HTML(paste(
+      "cyl = ",
+      tags$span("Generating Model...", style="color:black")
+    ))),
+    footer = NULL)))
+    on.exit(removeModal())
+    if(input$slider1 == 0){
       
-    })
-    
-    observeEvent(input$selectType, {
-      if(input$selectType == "Stocks"){
-        updateSelectInput(inputId = "select", label = "Pick a Stock to Predict", choices = stock.names)
-        updateSelectInput(inputId = "timeframe",label = "Pick a Timeframe", choices = list("Daily" = "daily",
-                                                                                           "Weekly" = "weekly"))
-      }
-      if(input$selectType == "Crypto"){
-        updateSelectInput(inputId = "select", label = "Pick a Crypto to Predict", choices = checkbox_list)
-        updateSelectInput(inputId = "timeframe",label = "Pick a Timeframe", choices = list("15 Minutes" = "15min",
-                                                                                           "1 Hour" = "1hour",
-                                                                                           "4 Hour" = "4hour",
-                                                                                           "8 Hour" = "8hour",
-                                                                                           "1 Day" = "1day"))
-      }
-      if(input$selectType == "Forex"){
-        updateSelectInput(inputId = "select", label = "Pick a Forex Pair to Predict", choices = fx.pair.names)
-        updateSelectInput(inputId = "timeframe",label = "Pick a Timeframe", choices = list("1 Hour" = "1hour",
-                                                                                           "4 Hour" = "4hour",
-                                                                                           "8 Hour" = "8hour",
-                                                                                           "1 Day" = "1day"))
-      }
-    })
-    
-    observeEvent(input$selectTypeMult, {
-      if(input$selectTypeMult == "Stocks"){
-        updateSelectizeInput(inputId = "checkGroup", label = "Pick a Stock to Predict", choices = stock.names, options = list(maxItems = 4))
-        updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("Daily" = "daily",
-                                                                                                  "Weekly" = "weekly"))
-      }
-      if(input$selectTypeMult == "Crypto"){
-        updateSelectizeInput(inputId = "checkGroup", label = "Pick a Crypto to Predict", choices = checkbox_list, options = list(maxItems = 4))
-        updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("15 Minutes" = "15min",
-                                                                                                  "1 Hour" = "1hour",
-                                                                                                  "4 Hour" = "4hour",
-                                                                                                  "8 Hour" = "8hour",
-                                                                                                  "1 Day" = "1day"))
-      }
-      if(input$selectTypeMult == "Forex"){
-        updateSelectizeInput(inputId = "checkGroup", label = "Pick a Forex Pair to Predict", choices = fx.pair.names, options = list(maxItems = 4))
-        updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("1 Hour" = "1hour",
-                                                                                                  "4 Hour" = "4hour",
-                                                                                                  "8 Hour" = "8hour",
-                                                                                                  "1 Day" = "1day"))
-      }
-    })
-    
-    observeEvent(input$selectTypeWeek, {
-      if(input$selectTypeWeek == "Forex"){
-        updateSelectInput(inputId = "selectNextWeek", label = "Pick a Forex Pair to Predict", choices = fx.pair.names)
-      }
-      if(input$selectTypeWeek == "Stocks"){
-        updateSelectInput(inputId = "selectNextWeek", label = "Pick a Stock to Predict", choices = stock.names)
-      }
-      if(input$selectTypeWeek == "Crypto"){
-        updateSelectInput(inputId = "selectNextWeek", label = "Pick a Crypto to Predict", choices = checkbox_list)
-      }
-      
-    })
-    
-    # observeEvent(input$selectTopCoin, {
-    #   
-    #   holder.info = GetTopHolders(input$selectTopCoin)
-    #   assign("holder.info",holder.info,.GlobalEnv)
-    #   
-    #   output$holderInfo = renderDataTable({
-    #     datatable(holder.info, rownames = FALSE, style = "bootstrap", selection = "single")
+    }else{
+      createModel(input$selectType,input$slider1, input$slider2, input$select, input$timeframe, input$slider1)
+    }
+    # output$OverallAccuracy = renderInfoBox({
+    #   infoBox("Overall Accuracy",paste0(round(overall.accuracy, digits = 2), "%"), icon = icon('check'))
     #   })
+    output$precisionBox = renderValueBox({
+      valueBox(value = paste0(precision,"%"), subtitle = "Precision Score", icon = icon("bullseye"))
+    })
+    # output$recallBox = renderValueBox({
+    #   valueBox(value = paste0(recall,"%"), subtitle = "Recall Score", icon = icon("circle-xmark"))
+    # })
+    # output$f1Box = renderValueBox({
+    #   valueBox(value = f1, subtitle = "F1 Score", icon = icon("check"))
+    # })
+    output$totalData = renderValueBox({
+      valueBox(value = nrow(compare), subtitle = "Number of Candles Backtested", icon = icon("vials"))
+    })
+    output$predictedHits = renderValueBox({
+      valueBox(value = nrow(compare[compare$decision == 1,]), subtitle = "Predicted Buy Signals", icon = icon("vials"))
+    })
+    # output$Buy = renderInfoBox({infoBox("Profitable Trades", paste0(round(yes.buy.correct.perc, digits = 2), "%"), icon = icon("thumbs-up"))
+    # })
+    # output$SumPercentage = renderInfoBox({
+    #   infoBox("Sum Percentage", paste0(round(sum.percentage, digits = 2), "%"),icon = icon("money-bill-trend-up"))
+    #   })
+    # # output$DontBuy = renderInfoBox({infoBox("'Don't Buy' Correct", paste0(round(no.buy.correct.perc, digits = 2),"%"),icon = icon("thumbs-down"))
+    # #   })
+    # output$Predictions = renderInfoBox({infoBox("Number of Predictions", paste0(nrow(compare)))
+    # })
+    # output$Hits = renderInfoBox({infoBox("Number of BUYS", paste0(nrow(compare[compare$Signal == 'DID BUY',])))
     # })
     # 
-    # observeEvent(input$generateHolderInfo, {
-    #   
-    #   print(paste0("Coin Code: ",input$selectTopCoin))
-    #   print(paste0("Holder Code: ",holder.info$holder.wallet[input$holderInfo_rows_selected]))
-    #   
-    #   
-    #   print("success")
-    #   holder.coin.df = GetHolderInfo(input$selectTopCoin, holder.info$holder.wallet[input$holderInfo_rows_selected], 30)
-    #   print("past function")
-    #   
-    #   if(length(holder.coin.df) > 0){
-    #     in.trades = sum(as.numeric(holder.coin.df$actualValue[holder.coin.df$in.out == "in"]))
-    #     out.trades = sum(as.numeric(holder.coin.df$actualValue[holder.coin.df$in.out == "out"]))
-    #     
-    #     sum.trades = in.trades - out.trades
-    #   }
-    #   
-    #   
-    #   
-    #   
-    #   if(exists("seven.day.df")){
-    #     
-    #     if(nrow(seven.day.df) > 0){
-    #       # seven day metrics
-    #       in.trades.seven = sum(as.numeric(seven.day.df$actualValue[seven.day.df$in.out == "in"]))
-    #       out.trades.seven = sum(as.numeric(seven.day.df$actualValue[seven.day.df$in.out == "out"]))
-    #       
-    #       sum.trades.seven = in.trades.seven - out.trades.seven
-    #     }else{
-    #       sum.trades.seven = 0
-    #     }
-    #   }else{
-    #     sum.trades.seven = 0
-    #   }
-    #   
-    #   
-    #   if(status == "active"){
-    #     
-    #     output$detailedHolderInfo = renderDataTable(datatable(holder.coin.df, style = "bootstrap", rownames = FALSE, selection = "none"))
-    #     
-    #     output$balance = renderValueBox(
-    #       valueBox(value = holder.info$quantity[input$holderInfo_rows_selected], subtitle = "Balance (coin)", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #     )
-    #     
-    #     output$status = renderValueBox(
-    #       valueBox(value = "Active", subtitle = "Status", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #     )
-    #     
-    #     
-    #     if(sum.trades >= 0){
-    #       output$ThirtyDayChange = renderValueBox(
-    #         valueBox(value = paste0("+",sum.trades), subtitle = "30 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #       )
-    #       output$dynamics = renderValueBox(
-    #         valueBox(value = "Coins In", subtitle = "Coin Movement Over 30 Days", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #       )
-    #     }else{
-    #       output$ThirtyDayChange = renderValueBox(
-    #         valueBox(value = paste0(sum.trades), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #       )
-    #       output$dynamics = renderValueBox(
-    #         valueBox(value = "Coins Out", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #       )
-    #     }
-    #     
-    #     if(sum.trades.seven >= 0){
-    #       output$SevenDayChange = renderValueBox(
-    #         valueBox(value = paste0("+",sum.trades.seven), subtitle = "7 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #       )
-    #     }else{
-    #       output$SevenDayChange = renderValueBox(
-    #         valueBox(value = paste0(sum.trades.seven), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #       )
-    #     }
-    #     
-    #     output$percentHeld = renderValueBox(
-    #       valueBox(value = holder.info$percentage[input$holderInfo_rows_selected], subtitle = "Percentage of Circulating Supply Held", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #     )
-    #   }else{
-    #     output$status = renderValueBox(
-    #       valueBox(value = "Not Active", subtitle = "Status", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #     )
-    #     
-    #     
-    #     output$ThirtyDayChange = renderValueBox(
-    #       valueBox(value = paste0("No Activity"), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #     )
-    #     output$SevenDayChange = renderValueBox(
-    #       valueBox(value = paste0("No Activity"), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #     )
-    #     output$dynamics = renderValueBox(
-    #       valueBox(value = "No Activity", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
-    #     )
-    #     
-    #     
-    #   }
-    #   
-    #   
-    #   
-    #   
-    #   
-    # })
+    # colnames(compare) = c('Actual', 'Actual High', 'Actual Low','Actual Close', 'Confidence Score', 'Signal', 'profit')
     
-    observeEvent(input$generateBacktestData, {
-      figs = Backtest.AV(df.comb.all, input$dateRange[1] , input$dateRange[2] , input$newsTopic, input$assetTypeAV)
-      output$pieChartBull = renderPlotly(figs$fig.bull)
-      output$pieChartBear = renderPlotly(figs$fig.bear)
-      output$tableBull = renderDataTable(datatable(figs$tbl.bull, style = "bootstrap"))
-      output$tableBear = renderDataTable(datatable(figs$tbl.bear, style = "bootstrap"))
-      output$newsFeed = renderDataTable(datatable(figs$news.feed, style = "bootstrap", options = list(scrollX = TRUE)))
-      
+    
+    
+    
+    compare2$Actual.Percent.High = paste0(compare2$Actual.Percent.High,"%")
+    compare2$Actual.Percent.Low = paste0(compare2$Actual.Percent.Low,"%")
+    compare2$Actual.Percent.Close = paste0(compare2$Actual.Percent.Close,"%")
+    
+    compare2$Signal[compare2$Signal == 1] = "DID BUY"
+    compare2$Signal[compare2$Signal == 0] = "DIDN'T BUY"
+    
+    compare2$Actual[compare2$Actual == 0] = 'MISSED TARGET'
+    compare2$Actual[compare2$Actual == 1] = 'HIT TARGET'
+    
+    colnames(compare2) = c("Actual","Actual High","Actual Low","Actual Close","Confidence Score", "Signal","profit")
+    
+    table1.colored = datatable(compare2, rownames = FALSE, options = list(pageLength = 20,
+                                                                          columnDefs = list(list(targets = 6, visible = FALSE))
+                                                                          
+    ), style = "bootstrap") %>%
+      formatStyle('Actual','profit',
+                  backgroundColor = styleEqual(c(0,1), c('darkred','lightgreen'))) %>%
+      formatStyle('Signal',
+                  backgroundColor = styleEqual(c("DIDN'T BUY","DID BUY"), c('darkred','lightgreen')))
+    
+    
+    
+    output$table1 = renderDataTable(table1.colored)
+    # output$modelPlot = renderPlot(hist(compare$Confidence.Score))
+    output$modelPlot = renderPlot(ggplot(data = compare, aes(x = pred)) + geom_histogram(colour = "blue", alpha = 0.3))
+  })
+  
+  observeEvent(input$action2, {
+    predict.tomorrow(0.3, input$select)
+    output$textToday = renderText(paste0("Probability of: ",round(predict.now, digits = 4)))
+    output$predict = renderInfoBox({
+      infoBox("Predicted Probability",round(predict.now, digits = 4))
     })
+  })
+  
+  observeEvent(input$action4, {
+    tags$head(tags$style("#modalPred .modal-header {background-color: #17202a; text-align: center}"))
+    showModal(tags$div(id="modalPred",modalDialog(title= tags$div(HTML(paste(
+      "cyl = ",
+      tags$span("Generating Predictions...", style="color:black")
+    ))),
+    footer = NULL)))
+    on.exit(removeModal())
+    x = input$checkGroup
+    updateSelectInput(session = session, inputId = 'candlestickInput', choices = x, selected = head(x,1))
+    
+    if(input$selectTypeMult == "Crypto" | input$selectTypeMult == "Stocks"){
+      predict.tomorrow.multiple(input$selectTypeMult,input$checkGroup, input$timeframePredict, input$slider3, .GlobalEnv)
+    }else{
+      predict.next.bh.bl.tar(input$checkGroup, input$timeframePredict, input$slider3)
+    }
     
     
-  }
+    dt.colored1 = Color.DT(predictions.df.indi1)
+    dt.colored2 = Color.DT(predictions.df.indi2)
+    dt.colored3 = Color.DT(predictions.df.indi3)
+    dt.colored4 = Color.DT(predictions.df.indi4)
+    
+    output$multipleOutput1 = renderDataTable(dt.colored1)
+    
+    
+    if(is.null(dt.colored2)){
+      shinyjs::hide("multipleOutput2")
+    }else{
+      shinyjs::show("multipleOutput2")
+      output$multipleOutput2 = renderDataTable(dt.colored2)
+    }
+    if(is.null(dt.colored3)){
+      shinyjs::hide("multipleOutput3")
+    }else{
+      shinyjs::show("multipleOutput3")
+      output$multipleOutput3 = renderDataTable(dt.colored3)
+    }
+    if(is.null(dt.colored4)){
+      shinyjs::hide("multipleOutput4")
+    }else{
+      shinyjs::show("multipleOutput4")
+      output$multipleOutput4 = renderDataTable(dt.colored4)
+    }
+    
+    
+    output$binancePredictionTable = renderDataTable(dt.colored)
+    output$candlestickPlot = renderPlotly(createCandlePlot(input$candlestickInput))
+  })
   
-  # Run the application 
-  shinyApp(ui = ui, server = server)
+  observeEvent(input$action5, {
+    # showModal(modalDialog("Generating predictions...", footer = NULL))
+    output$nextWeekOutput = renderPlot(predict_week(tolower(input$selectNextWeek), input$selectTimeFrame, input$selectTypeWeek))
+    output$forecastWeekOutput = renderDataTable(datatable(week.forecast.df, style = "bootstrap", rownames = FALSE))
+    
+    # on.exit(removeModal())
+    
+  })
   
+  observeEvent(input$action6, {
+    tags$head(tags$style("#modalPred2 .modal-header {background-color: #17202a; text-align: center}"))
+    showModal(tags$div(id="modalPred2",modalDialog(title= tags$div(HTML(paste(
+      "cyl = ",
+      tags$span("Generating Predictions...", style="color:black")
+    ))),
+    footer = NULL)))
+    on.exit(removeModal())
+    
+    if(is.null(input$tvDataDrop)){
+      return(NULL)
+    }else{
+      df = input$tvDataDrop
+    }
+    
+    output$TVPrediction = renderDataTable(build.TV.model(df, input$tvTimeFrame))
+    # output$TVPrediction = renderDataTable(predictions.df.comb)
+    
+  })
+  
+  observeEvent(input$selectall, {
+    updateCheckboxGroupInput(session = session, 'checkGroup',choices = checkbox_list, selected = checkbox_list)
+    
+  })
+  
+  # observeEvent(input$getLivePrice, {
+  #   output$livePrice = renderText(round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4))
+  # })
+  
+  # observeEvent(input$submitBinance, {
+  #   x = possibly_spot_new_order(
+  #     order_type = input$selectTypeBinance,
+  #     symbol = input$selectCoinBinance,
+  #     side = input$selectSideBinance,
+  #     quantity = input$tradeQuantity,
+  #     test = FALSE
+  #   )
+  #   if(x[1] == 'ERROR'){
+  #     shinyalert("Order Not Placed",
+  #                "Check to see if you used to many decimals or if the minimum order requirements have not been met!",
+  #                type = 'error')
+  #   }else{
+  #     shinyalert("Success",
+  #                "Your order was successfully placed!",
+  #                type = 'success')
+  #   }
+  # 
+  #   output$spotAccountBalances = renderDataTable(datatable(spot_account_balances()))
+  # })
+  
+  # observeEvent(input$percentSliderBinance, {
+  #   current_balance = spot_account_balances()
+  #   free_usdt = current_balance$free[current_balance$asset == 'USDT']
+  #   percentage = (input$percentSliderBinance / 100)
+  #   quantity_usdt = free_usdt * percentage
+  #   
+  #   current_coin_price = round(as.numeric(binance::market_price_ticker(input$selectCoinBinance)$price), digits = 4)
+  #   quantity_coin = round(quantity_usdt / current_coin_price, digits = coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance])
+  #   updateNumericInput(session = session, inputId = 'tradeQuantity',label = 'Quantity',value = quantity_coin, min = 0, step = 0.1)
+  # })
+  # 
+  
+  # observeEvent(input$checkGroupBinance, {
+  #   vol1 = riingo_crypto_latest(input$checkGroupBinance, resample_frequency = '5min')
+  #   vol1 = vol1[-1,]
+  #   vol2 = riingo_crypto_prices(input$checkGroupBinance,start_date = Sys.Date() - 2,end_date = Sys.Date(), resample_frequency = '5min')
+  # 
+  #   vol = rbind(vol2, vol1)
+  #   vol = vol[nrow(vol)-25:nrow(vol),]
+  #   m.vol = mean(vol$volume)
+  #   vol.now = vol$volume[(nrow(vol)-1)]
+  # 
+  #   vol.compare = (vol.now/m.vol * 100) - 100
+  # 
+  #   output$volumeGauge = renderGauge({
+  #     gauge(vol.compare,
+  #           min = -100,
+  #           max = 100,
+  #           sectors = gaugeSectors(
+  #             success = c(20, 100),
+  #             warning = c(-20, 20),
+  #             danger = c(-100, -20)))
+  #   })
+  # })
+  # 
+  
+  
+  # observeEvent(input$submitBinanceAutomation, {
+  #   
+  #   x = data.frame(User = reactiveValuesToList(res_auth)$user,
+  #                  Timeframe = input$timeframeAutomation,
+  #                  Coins = input$checkGroupBinance,
+  #                  Target = input$sliderAutomationTarget,
+  #                  Confidence = input$confidenceThresholdAutomation,
+  #                  Percentage = input$sliderBalanceUsed,
+  #                  TakeProfit = input$takeProfitBinanceAutomation,
+  #                  StopLoss = (input$stopLossBinanceAutomation / 100) * input$takeProfitBinanceAutomation,
+  #                  Active = TRUE
+  #                  )
+  #   saveRDS(x, file = paste0(tempdir(), "/x.rds"))
+  # 
+  #   aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
+  # 
+  #   put_object(
+  #     file = file.path(tempdir(), "x.rds"),
+  #     object = paste0(input$checkGroupBinance,".rds"),
+  #     bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
+  #   )
+  #   
+  #   x = aws.s3::get_bucket_df("cryptomlbucket")
+  #   
+  #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  #   if(length(coins.running) != 0){
+  #     y = data.frame(Coins = coins.running)
+  #     # output$currentAutomation = renderDataTable(datatable(y))
+  #   }
+  #   
+  #   # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+  #   # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+  #   
+  #   x = aws.s3::get_bucket_df("cryptomlbucket")
+  #   
+  #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  #   
+  # 
+  #     df.coins.running = data.frame(User = character(),
+  #                                   Timeframe = character(),
+  #                                   Coins = character(),
+  #                                   Target = character(),
+  #                                   Confidence = character(),
+  #                                   Percentage = character(),
+  #                                   TakeProfit = character(),
+  #                                   StopLoss = character(),
+  #                                   Active = character())
+  #     for(z in 1:length(coins.running)){
+  #       dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+  #       df.coins.running = rbind(df.coins.running, dfx)
+  #     }
+  #     if(length(coins.running > 0)){
+  #       output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+  #     }else{
+  #       output$activeAutomationInfo = NULL
+  #     }    
+  #   
+  # 
+  #   
+  #   shinyalert("Success",
+  #              "Your Automation Was Successfully Started!",
+  #              type = 'success')
+  # })
+  # 
+  # observeEvent(input$cancelBinanceAutomation, {
+  #   
+  #   # x = data.frame(User = reactiveValuesToList(res_auth)$user,
+  #   #                Timeframe = input$timeframeAutomation,
+  #   #                Coins = input$checkGroupBinance,
+  #   #                Target = input$sliderAutomationTarget,
+  #   #                Confidence = input$confidenceThresholdAutomation,
+  #   #                Percentage = input$sliderBalanceUsed,
+  #   #                TakeProfit = input$takeProfitBinanceAutomation,
+  #   #                StopLoss = input$stopLossBinanceAutomation,
+  #   #                Active = FALSE
+  #   # )
+  #   # saveRDS(x, file = paste0(tempdir(), "/x.rds"))
+  #   # 
+  #   # aws.s3::put_folder(reactiveValuesToList(res_auth)$user ,bucket = "cryptomlbucket/Automation")
+  #   # 
+  #   # put_object(
+  #   #   file = file.path(tempdir(), "x.rds"),
+  #   #   object = paste0(input$checkGroupBinance,".rds"),
+  #   #   bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user)
+  #   # )
+  #   aws.s3::delete_object(object = paste0(input$checkGroupBinance,".rds"), bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user))
+  #   x = aws.s3::get_bucket_df("cryptomlbucket")
+  #   
+  #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  #   # if(length(coins.running) != 0){
+  #     y = data.frame(Coins = coins.running)
+  #     # output$currentAutomation = renderDataTable(datatable(y))
+  #     # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+  #     # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+  #     
+  #     x = aws.s3::get_bucket_df("cryptomlbucket")
+  #     
+  #     x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  #     coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  # 
+  #       df.coins.running = data.frame(User = character(),
+  #                                     Timeframe = character(),
+  #                                     Coins = character(),
+  #                                     Target = character(),
+  #                                     Confidence = character(),
+  #                                     Percentage = character(),
+  #                                     TakeProfit = character(),
+  #                                     StopLoss = character(),
+  #                                     Active = character())
+  #       for(z in 1:length(coins.running)){
+  #         dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+  #         df.coins.running = rbind(df.coins.running, dfx)
+  #       }
+  #       if(length(coins.running > 0)){
+  #         output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+  #       }else{
+  #         output$activeAutomationInfo = NULL
+  #       }      
+  # 
+  #   # }
+  #   
+  #   shinyalert("Success",
+  #              "Your Automation Was Successfully Stopped!",
+  #              type = 'success')
+  # })
+  # # observeEvent(input$selectTradesPlaced, {
+  # #   y = binance::spot_trades_list(symbol=input$selectTradesPlaced)
+  # #   if(!is.null(y)){
+  # #     y = y %>%
+  # #       select(symbol, time, price, qty, commission, commission_asset, side)
+  # #     output$tradesPlaced = renderDataTable(datatable(y))
+  # #   }
+  # # 
+  # # })
+  # 
+  # # observeEvent(input$selectActiveAutomation, {
+  # #   x = aws.s3::get_bucket_df("cryptomlbucket")
+  # #   
+  # #   x.sel = x[grepl(pattern = paste0("Automation/",reactiveValuesToList(res_auth)$user,"/"), x = x$Key),]
+  # #   coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  # # 
+  # #     df.coins.running = data.frame(User = character(),
+  # #                                   Timeframe = character(),
+  # #                                   Coins = character(),
+  # #                                   Target = character(),
+  # #                                   Confidence = character(),
+  # #                                   Percentage = character(),
+  # #                                   TakeProfit = character(),
+  # #                                   StopLoss = character(),
+  # #                                   Active = character())
+  # #     for(z in 1:length(coins.running)){
+  # #       dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",reactiveValuesToList(res_auth)$user), object = paste0(coins.running[z],".rds"))
+  # #       df.coins.running = rbind(df.coins.running, dfx)
+  # #     }
+  # #     output$activeAutomationInfo = renderDataTable(datatable(df.coins.running))
+  # #   
+  # # })
+  # 
+  observeEvent(input$timeframe,{
+    if(input$selectType == "Crypto" | input$selectType == "Stocks"){
+      if(input$timeframe == "15min" | input$timeframe == "1hour"){
+        updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = -1, max = 1, step = 0.1, value = 0.1)
+      }else if(input$timeframe == "2hour"){
+        updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min =-2, max = 2, step = 0.2, value = 0.2)
+      }else{
+        updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = -3, max = 3, step = 0.2, value = 0.2)
+      }
+    }else{
+      updateSliderInput(inputId = "slider1",label="Select Percentage Increase", min = -0.5, max = 0.5, step = 0.05, value = 0.05)
+    }
+    
+  })
+  
+  observeEvent(input$selectType, {
+    if(input$selectType == "Stocks"){
+      updateSelectInput(inputId = "select", label = "Pick a Stock to Predict", choices = stock.names)
+      updateSelectInput(inputId = "timeframe",label = "Pick a Timeframe", choices = list("Daily" = "daily",
+                                                                                         "Weekly" = "weekly"))
+    }
+    if(input$selectType == "Crypto"){
+      updateSelectInput(inputId = "select", label = "Pick a Crypto to Predict", choices = checkbox_list)
+      updateSelectInput(inputId = "timeframe",label = "Pick a Timeframe", choices = list("15 Minutes" = "15min",
+                                                                                         "1 Hour" = "1hour",
+                                                                                         "4 Hour" = "4hour",
+                                                                                         "8 Hour" = "8hour",
+                                                                                         "1 Day" = "1day"))
+    }
+    if(input$selectType == "Forex"){
+      updateSelectInput(inputId = "select", label = "Pick a Forex Pair to Predict", choices = fx.pair.names)
+      updateSelectInput(inputId = "timeframe",label = "Pick a Timeframe", choices = list("1 Hour" = "1hour",
+                                                                                         "4 Hour" = "4hour",
+                                                                                         "8 Hour" = "8hour",
+                                                                                         "1 Day" = "1day"))
+    }
+  })
+  
+  observeEvent(input$selectTypeMult, {
+    if(input$selectTypeMult == "Stocks"){
+      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Stock to Predict", choices = stock.names, options = list(maxItems = 4))
+      updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("Daily" = "daily",
+                                                                                                "Weekly" = "weekly"))
+    }
+    if(input$selectTypeMult == "Crypto"){
+      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Crypto to Predict", choices = checkbox_list, options = list(maxItems = 4))
+      updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("15 Minutes" = "15min",
+                                                                                                "1 Hour" = "1hour",
+                                                                                                "4 Hour" = "4hour",
+                                                                                                "8 Hour" = "8hour",
+                                                                                                "1 Day" = "1day"))
+    }
+    if(input$selectTypeMult == "Forex"){
+      updateSelectizeInput(inputId = "checkGroup", label = "Pick a Forex Pair to Predict", choices = fx.pair.names, options = list(maxItems = 4))
+      updateSelectInput(inputId = "timeframePredict",label = "Pick a Timeframe", choices = list("1 Hour" = "1hour",
+                                                                                                "4 Hour" = "4hour",
+                                                                                                "8 Hour" = "8hour",
+                                                                                                "1 Day" = "1day"))
+    }
+  })
+  
+  observeEvent(input$selectTypeWeek, {
+    if(input$selectTypeWeek == "Forex"){
+      updateSelectInput(inputId = "selectNextWeek", label = "Pick a Forex Pair to Predict", choices = fx.pair.names)
+    }
+    if(input$selectTypeWeek == "Stocks"){
+      updateSelectInput(inputId = "selectNextWeek", label = "Pick a Stock to Predict", choices = stock.names)
+    }
+    if(input$selectTypeWeek == "Crypto"){
+      updateSelectInput(inputId = "selectNextWeek", label = "Pick a Crypto to Predict", choices = checkbox_list)
+    }
+    
+  })
+  
+  # observeEvent(input$selectTopCoin, {
+  #   
+  #   holder.info = GetTopHolders(input$selectTopCoin)
+  #   assign("holder.info",holder.info,.GlobalEnv)
+  #   
+  #   output$holderInfo = renderDataTable({
+  #     datatable(holder.info, rownames = FALSE, style = "bootstrap", selection = "single")
+  #   })
+  # })
+  # 
+  # observeEvent(input$generateHolderInfo, {
+  #   
+  #   print(paste0("Coin Code: ",input$selectTopCoin))
+  #   print(paste0("Holder Code: ",holder.info$holder.wallet[input$holderInfo_rows_selected]))
+  #   
+  #   
+  #   print("success")
+  #   holder.coin.df = GetHolderInfo(input$selectTopCoin, holder.info$holder.wallet[input$holderInfo_rows_selected], 30)
+  #   print("past function")
+  #   
+  #   if(length(holder.coin.df) > 0){
+  #     in.trades = sum(as.numeric(holder.coin.df$actualValue[holder.coin.df$in.out == "in"]))
+  #     out.trades = sum(as.numeric(holder.coin.df$actualValue[holder.coin.df$in.out == "out"]))
+  #     
+  #     sum.trades = in.trades - out.trades
+  #   }
+  #   
+  #   
+  #   
+  #   
+  #   if(exists("seven.day.df")){
+  #     
+  #     if(nrow(seven.day.df) > 0){
+  #       # seven day metrics
+  #       in.trades.seven = sum(as.numeric(seven.day.df$actualValue[seven.day.df$in.out == "in"]))
+  #       out.trades.seven = sum(as.numeric(seven.day.df$actualValue[seven.day.df$in.out == "out"]))
+  #       
+  #       sum.trades.seven = in.trades.seven - out.trades.seven
+  #     }else{
+  #       sum.trades.seven = 0
+  #     }
+  #   }else{
+  #     sum.trades.seven = 0
+  #   }
+  #   
+  #   
+  #   if(status == "active"){
+  #     
+  #     output$detailedHolderInfo = renderDataTable(datatable(holder.coin.df, style = "bootstrap", rownames = FALSE, selection = "none"))
+  #     
+  #     output$balance = renderValueBox(
+  #       valueBox(value = holder.info$quantity[input$holderInfo_rows_selected], subtitle = "Balance (coin)", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     
+  #     output$status = renderValueBox(
+  #       valueBox(value = "Active", subtitle = "Status", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     
+  #     
+  #     if(sum.trades >= 0){
+  #       output$ThirtyDayChange = renderValueBox(
+  #         valueBox(value = paste0("+",sum.trades), subtitle = "30 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #       output$dynamics = renderValueBox(
+  #         valueBox(value = "Coins In", subtitle = "Coin Movement Over 30 Days", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #     }else{
+  #       output$ThirtyDayChange = renderValueBox(
+  #         valueBox(value = paste0(sum.trades), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #       output$dynamics = renderValueBox(
+  #         valueBox(value = "Coins Out", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #     }
+  #     
+  #     if(sum.trades.seven >= 0){
+  #       output$SevenDayChange = renderValueBox(
+  #         valueBox(value = paste0("+",sum.trades.seven), subtitle = "7 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #     }else{
+  #       output$SevenDayChange = renderValueBox(
+  #         valueBox(value = paste0(sum.trades.seven), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       )
+  #     }
+  #     
+  #     output$percentHeld = renderValueBox(
+  #       valueBox(value = holder.info$percentage[input$holderInfo_rows_selected], subtitle = "Percentage of Circulating Supply Held", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #   }else{
+  #     output$status = renderValueBox(
+  #       valueBox(value = "Not Active", subtitle = "Status", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     
+  #     
+  #     output$ThirtyDayChange = renderValueBox(
+  #       valueBox(value = paste0("No Activity"), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     output$SevenDayChange = renderValueBox(
+  #       valueBox(value = paste0("No Activity"), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     output$dynamics = renderValueBox(
+  #       valueBox(value = "No Activity", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #     )
+  #     
+  #     
+  #   }
+  #   
+  #   
+  #   
+  #   
+  #   
+  # })
+  
+  observeEvent(input$generateBacktestData, {
+    figs = Backtest.AV(df.comb.all, input$dateRange[1] , input$dateRange[2] , input$newsTopic, input$assetTypeAV)
+    output$pieChartBull = renderPlotly(figs$fig.bull)
+    output$pieChartBear = renderPlotly(figs$fig.bear)
+    output$tableBull = renderDataTable(datatable(figs$tbl.bull, style = "bootstrap"))
+    output$tableBear = renderDataTable(datatable(figs$tbl.bear, style = "bootstrap"))
+    output$newsFeed = renderDataTable(datatable(figs$news.feed, style = "bootstrap", options = list(scrollX = TRUE)))
+    
+  })
+  
+  observeEvent(input$generateBacktestFF, {
+    output$ffBacktestTable = renderDataTable(datatable(BackTestFF(input$newsRegion,input$newsTopic,input$dateRangeFF,input$assetType,input$timeframeFF), style = "bootstrap"))
+  })
+  
+  
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
