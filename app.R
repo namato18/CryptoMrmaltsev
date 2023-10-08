@@ -650,6 +650,7 @@ ui <- secure_app(
                   ),
                   box(title = "Backtest Selected Daterange by Month", status = "primary", solidHeader = TRUE, width = 12,
                     selectInput("subCategory","Select a Sub-Category to Filter", choices = list("All" = "All")),
+                    actionButton("applySubCategory", "Apply Filter"),
                     dataTableOutput("ffBacktestTable")
                   )
                   
@@ -1419,7 +1420,29 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$generateBacktestFF, {
-    output$ffBacktestTable = renderDataTable(datatable(BackTestFF(input$newsRegion,input$newsTopic,input$dateRangeFF,input$assetType,input$timeframeFF), style = "bootstrap"))
+    newsRegion = input$newsRegion
+    newsTopic = input$newsTopic
+    dateRangeFF = input$dateRangeFF
+    assetType = input$assetType
+    timeframeFF = input$timeframeFF
+    
+    returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF)
+    
+    output$ffBacktestTable = renderDataTable(datatable(returned.data$df.summarized, style = "bootstrap"))
+    updateSelectInput(session = session, inputId = "subCategory", label = "Select a Sub-Category to Filter", choices = returned.data$unique.sub.topics)
+  })
+  
+  observeEvent(input$applySubCategory, {
+    newsRegion = input$newsRegion
+    newsTopic = input$newsTopic
+    dateRangeFF = input$dateRangeFF
+    assetType = input$assetType
+    timeframeFF = input$timeframeFF
+    sub.category = input$subCategory
+    
+    returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,sub.category)
+    
+    output$ffBacktestTable = renderDataTable(datatable(returned.data$df.summarized, style = "bootstrap"))
   })
   
   

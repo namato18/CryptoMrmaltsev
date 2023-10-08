@@ -2031,11 +2031,11 @@ Backtest.AV <- function(df, startDate, endDate, topic, type){
 ##############################################################
 ##############################################################
 
-BackTestFF = function(region,topic,date.range,asset,timeframe){
+BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"){
   # region = "USD"
-  # asset = "GBPUSD"
-  # timeframe = "60min"
-  # topic = "Inflation"
+  # asset = "USDCAD"
+  # timeframe = "5min"
+  # topic = "Growth"
   timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
   
   if(asset == "SPY"){
@@ -2049,6 +2049,11 @@ BackTestFF = function(region,topic,date.range,asset,timeframe){
   df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices", object = paste0("df.",type,".news.prices.",asset,timeframe,".rds"))
   
   df$formatted_dates <- as.factor(format(df$POSIXct, "%B %Y"))
+  
+  if(sub.filter != "All"){
+    df = df %>%
+      filter(event.title == sub.filter)
+  }
   
   df = df %>%
     filter(currency == region & Tag == topic) %>%
@@ -2090,6 +2095,12 @@ BackTestFF = function(region,topic,date.range,asset,timeframe){
                               paste0(timeframe.numeric,"min Forward % Change"),
                               paste0(timeframe.numeric*2,"min Forward % Change")
                               )
-  return(df.summarized)
+  set.all= setNames("All","All")
+  unique.sub.topics = setNames(unique(df$event.title), unique(df$event.title))
+  unique.sub.topics = c(set.all,unique.sub.topics)
+  
+  to.return = list(df.summarized = df.summarized,
+                   unique.sub.topics = unique.sub.topics)
+  return(to.return)
 }
 
