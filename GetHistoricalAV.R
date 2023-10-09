@@ -191,9 +191,10 @@ fallback = c(1,6,12)
 
 
 for(k in 1:length(pair)){
-  
+  k=1
   
   for(j in 1:length(fallback)){
+    j=1
     
     numeric_value <- as.numeric(str_extract(timeframe[j], "\\d+"))
     

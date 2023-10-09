@@ -2036,7 +2036,10 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
   # asset = "USDCAD"
   # timeframe = "5min"
   # topic = "Growth"
+  # start_date = "2018-01-01"
+  # end_date = "2023-01-01"
   timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
+  # sub.filter = "All"
   
   if(asset == "SPY"){
     type = "stock"
@@ -2060,7 +2063,23 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
     group_by(formatted_dates)
   
   df.to.summarize = df[,c(5,6,11:16)]
+  df.to.summarize.pie = df[,c(4,12:14)]
+  colnames(df.to.summarize.pie) = c("title","once.back","current","once.forward")
   colnames(df.to.summarize) = c("actual","forecast","double.back","once.back","current","once.forward","double.forward","formatted_dates")
+  
+  ##
+  df.to.summarize.pie = df.to.summarize.pie %>%
+    group_by(title)
+  
+  df.to.summarize.pie$Change.Backward = abs(round((df.to.summarize.pie$once.back - df.to.summarize.pie$current) / df.to.summarize.pie$current * 100, 3))
+  df.to.summarize.pie$Change.Forward = abs(round((df.to.summarize.pie$once.forward - df.to.summarize.pie$current) / df.to.summarize.pie$current * 100, 3))
+  
+  df.to.summarize.pie$Change = df.to.summarize.pie$Change.Backward + df.to.summarize.pie$Change.Forward
+  
+  x.pie = summarize(df.to.summarize.pie, sum.change = sum(Change))
+  
+  fig.pie1 = plot_ly(x.pie, labels = ~title, values = ~sum.change, type = "pie")
+  ##
   
   df.to.summarize$actual = as.numeric(sub("%","",df.to.summarize$actual))
   df.to.summarize$forecast = as.numeric(sub("%","",df.to.summarize$forecast))
@@ -2100,7 +2119,58 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
   unique.sub.topics = c(set.all,unique.sub.topics)
   
   to.return = list(df.summarized = df.summarized,
-                   unique.sub.topics = unique.sub.topics)
+                   unique.sub.topics = unique.sub.topics,
+                   pie2 = fig.pie1)
   return(to.return)
+}
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+CreatePie <- function(region,topic,date.range,asset,timeframe,sub.filter = "All"){
+  # region = "USD"
+  # asset = "USDCAD"
+  # timeframe = "5min"
+  # topic = "Growth"
+  # start_date = "2018-01-01"
+  # end_date = "2023-01-01"
+  timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
+  # sub.filter = "All"
+  
+  if(asset == "SPY"){
+    type = "stock"
+  }else if(asset == "BTCUSDT"){
+    type = "crypto"
+  }else{
+    type = "forex"
+  }
+  
+  df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices", object = paste0("df.",type,".news.prices.",asset,timeframe,".rds"))
+  
+  df$formatted_dates <- as.factor(format(df$POSIXct, "%B %Y"))
+  
+  df = df %>%
+    filter(currency == region) %>%
+    group_by(Tag)
+  
+  df.for.pie = df[,c(9,12,13,14)]
+
+  colnames(df.for.pie) = c('Tag', "Once.Back",'Current', 'Once.Forward')
+  
+  df.for.pie$Change.Backward = abs(round((df.for.pie$Once.Back - df.for.pie$Current) / df.for.pie$Current * 100, 3))
+  df.for.pie$Change.Forward = abs(round((df.for.pie$Once.Forward - df.for.pie$Current) / df.for.pie$Current * 100, 3))
+  
+  df.for.pie$Change = df.for.pie$Change.Backward + df.for.pie$Change.Forward
+  
+  x = summarize(df.for.pie, sum.change = sum(Change))
+  
+  fig.pie = plot_ly(x, labels = ~Tag, values = ~sum.change, type = "pie") %>%
+    layout(paper_bgcolor = "transparent",
+           font = list(color = 'white'))
+  
+  return(fig.pie)
 }
 

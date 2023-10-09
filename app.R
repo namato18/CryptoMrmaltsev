@@ -622,36 +622,44 @@ ui <- secure_app(
                     ),
                     tags$link(rel = "stylesheet", type = "text/css", href = "stylev1.css")
                   ),
-                  
-                  box(title = "Backtest News Inputs", status = "primary", solidHeader = TRUE, width = 6,
-                      selectInput("newsRegion", label = "Select a News Region", choices = list("US" = "USD",
-                                                                                               "EU" = "EUR")),
-                      selectInput("newsTopic", "Select a Topic to Examine", choices = list("Growth" = "Growth",
-                                                                                           "Inflation" = "Inflation",
-                                                                                           "Employment" = "Employment",
-                                                                                           "Central Bank" = "Central Bank",
-                                                                                           "Bonds" = "Bonds",
-                                                                                           "Housing" = "Housing",
-                                                                                           "Consumer Surveys",
-                                                                                           "Business Surveys" = "Business Surveys",
-                                                                                           "Speeches" = "Speeches")),
-                      
-                      dateRangeInput("dateRangeFF", label = "Select a Date Range", start = "2015-01-01" , end = "2023-09-09"),
-                      selectInput("assetType", "Select an Asset Type", choices = list("BTC" = "BTCUSDT",
-                                                                                      "USD" = "USDCAD",
-                                                                                      "GBP" = "GBPUSD",
-                                                                                      "AUD" = "AUDUSD",
-                                                                                      "S&P 500" = "SPY")),
-                      selectInput("timeframeFF","Select a Timeframe to Analyze", choices = list("5 Minutes" = "5min",
-                                                                                                "30 Minutes" = "30min",
-                                                                                                "1 Hour" = "60min")),
-                      actionButton("generateBacktestFF", "Generate Backtest")
-                      
+                  column(width = 3,
+                         box(title = "Backtest News Inputs", status = "primary", solidHeader = TRUE, width = NULL,
+                             selectInput("newsRegion", label = "Select a News Region", choices = list("US" = "USD",
+                                                                                                      "EU" = "EUR")),
+                             selectInput("newsTopic", "Select a Topic to Examine", choices = list("Growth" = "Growth",
+                                                                                                  "Inflation" = "Inflation",
+                                                                                                  "Employment" = "Employment",
+                                                                                                  "Central Bank" = "Central Bank",
+                                                                                                  "Bonds" = "Bonds",
+                                                                                                  "Housing" = "Housing",
+                                                                                                  "Consumer Surveys",
+                                                                                                  "Business Surveys" = "Business Surveys",
+                                                                                                  "Speeches" = "Speeches")),
+                             
+                             dateRangeInput("dateRangeFF", label = "Select a Date Range", start = "2015-01-01" , end = "2023-09-09"),
+                             selectInput("assetType", "Select an Asset Type", choices = list("BTC" = "BTCUSDT",
+                                                                                             "USD" = "USDCAD",
+                                                                                             "GBP" = "GBPUSD",
+                                                                                             "AUD" = "AUDUSD",
+                                                                                             "S&P 500" = "SPY")),
+                             selectInput("timeframeFF","Select a Timeframe to Analyze", choices = list("5 Minutes" = "5min",
+                                                                                                       "30 Minutes" = "30min",
+                                                                                                       "1 Hour" = "60min")),
+                             actionButton("generateBacktestFF", "Generate Backtest")
+                             
+                         )
                   ),
+                  column(width = 5,
+                         plotlyOutput("pieChart1")
+                  ),
+                  column(width = 4,
+                         plotlyOutput("pieChart2")
+                  ),
+                  
                   box(title = "Backtest Selected Daterange by Month", status = "primary", solidHeader = TRUE, width = 12,
-                    selectInput("subCategory","Select a Sub-Category to Filter", choices = list("All" = "All")),
-                    actionButton("applySubCategory", "Apply Filter"),
-                    dataTableOutput("ffBacktestTable")
+                      selectInput("subCategory","Select a Sub-Category to Filter", choices = list("All" = "All")),
+                      actionButton("applySubCategory", "Apply Filter"),
+                      dataTableOutput("ffBacktestTable")
                   )
                   
                 )
@@ -1427,8 +1435,9 @@ server <- function(input, output, session) {
     timeframeFF = input$timeframeFF
     
     returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF)
-    
+    fig.pie1 = CreatePie(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF)
     output$ffBacktestTable = renderDataTable(datatable(returned.data$df.summarized, style = "bootstrap"))
+    output$pieChart1 = renderPlotly(fig.pie1)
     updateSelectInput(session = session, inputId = "subCategory", label = "Select a Sub-Category to Filter", choices = returned.data$unique.sub.topics)
   })
   

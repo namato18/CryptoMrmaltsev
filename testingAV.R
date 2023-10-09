@@ -238,6 +238,6 @@ df.comb$POSIXct = paste0(df.comb$date," ",df.comb$time) %>%
   strptime(format = "%a %b %d %Y %I:%M%p") %>%
   as.POSIXct(tz = "UTC")
 
-saveRDS(df.comb,"AlphaVantageData/df.tagged.rds")
+# saveRDS(df.comb,"AlphaVantageData/df.tagged.rds")
 
 
