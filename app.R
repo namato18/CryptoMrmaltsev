@@ -617,15 +617,25 @@ ui <- secure_app(
         # ),
         tabItem(tabName = "forexFactoryBacktest",
                 fluidRow(
+                  add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "bottom-right"),
+                  
                   tags$head(
                     tags$style(type="text/css"
                     ),
                     tags$link(rel = "stylesheet", type = "text/css", href = "stylev1.css")
                   ),
-                  column(width = 3,
+                  column(width = 4,
                          box(title = "Backtest News Inputs", status = "primary", solidHeader = TRUE, width = NULL,
-                             selectInput("newsRegion", label = "Select a News Region", choices = list("US" = "USD",
-                                                                                                      "EU" = "EUR")),
+                             selectInput("newsRegion", label = "Select a News Region", choices = list("USD" = "USD",
+                                                                                                      "EUR" = "EUR",
+                                                                                                      "NZD" = "NZD",
+                                                                                                      "AUD" = "AUD",
+                                                                                                      "CAD" = "CAD",
+                                                                                                      "CHF" = "CHF",
+                                                                                                      "CNY" = "CNY",
+                                                                                                      "GBP" = "GBP",
+                                                                                                      "JPY" = "JPY"
+                                                                                                      )),
                              selectInput("newsTopic", "Select a Topic to Examine", choices = list("Growth" = "Growth",
                                                                                                   "Inflation" = "Inflation",
                                                                                                   "Employment" = "Employment",
@@ -636,12 +646,17 @@ ui <- secure_app(
                                                                                                   "Business Surveys" = "Business Surveys",
                                                                                                   "Speeches" = "Speeches")),
                              
-                             dateRangeInput("dateRangeFF", label = "Select a Date Range", start = "2015-01-01" , end = "2023-09-09"),
-                             selectInput("assetType", "Select an Asset Type", choices = list("BTC" = "BTCUSDT",
-                                                                                             "USD" = "USDCAD",
-                                                                                             "GBP" = "GBPUSD",
-                                                                                             "AUD" = "AUDUSD",
-                                                                                             "S&P 500" = "SPY")),
+                             dateRangeInput("dateRangeFF", label = "Select a Date Range", start = "2020-01-01" , end = "2023-09-09"),
+                             selectInput("assetType", "Select an Asset Type", choices = list(
+                                                                                             "USDCAD" = "USDCAD",
+                                                                                             "GBPUSD" = "GBPUSD",
+                                                                                             "AUDUSD" = "AUDUSD",
+                                                                                             "EURUSD" = "EURUSD",
+                                                                                             "USDCHF" = "USDCHF",
+                                                                                             "USDJPY" = "USDJPY",
+                                                                                             "CHFJPY" = "CHFJPY",
+                                                                                             "CNHJPY" = "CNHJPY",
+                                                                                             "NZDJPY" = "NZDJPY")),
                              selectInput("timeframeFF","Select a Timeframe to Analyze", choices = list("5 Minutes" = "5min",
                                                                                                        "30 Minutes" = "30min",
                                                                                                        "1 Hour" = "60min")),
@@ -649,7 +664,7 @@ ui <- secure_app(
                              
                          )
                   ),
-                  column(width = 5,
+                  column(width = 4,
                          plotlyOutput("pieChart1")
                   ),
                   column(width = 4,
@@ -659,7 +674,12 @@ ui <- secure_app(
                   box(title = "Backtest Selected Daterange by Month", status = "primary", solidHeader = TRUE, width = 12,
                       selectInput("subCategory","Select a Sub-Category to Filter", choices = list("All" = "All")),
                       actionButton("applySubCategory", "Apply Filter"),
+                      br(),
+                      br(),
                       dataTableOutput("ffBacktestTable")
+                  ),
+                  box(title = "Time Series Plot", status = "primary", solidHeader = TRUE, width = 12,
+                    plotlyOutput("timeSeriesPlot")
                   )
                   
                 )
@@ -856,19 +876,19 @@ server <- function(input, output, session) {
     #   infoBox("Overall Accuracy",paste0(round(overall.accuracy, digits = 2), "%"), icon = icon('check'))
     #   })
     output$precisionBox = renderValueBox({
-      valueBox(value = paste0(precision,"%"), subtitle = "Precision Score", icon = icon("bullseye"))
+      shinydashboard::valueBox(value = paste0(precision,"%"), subtitle = "Precision Score", icon = icon("bullseye"))
     })
     # output$recallBox = renderValueBox({
-    #   valueBox(value = paste0(recall,"%"), subtitle = "Recall Score", icon = icon("circle-xmark"))
+    #   shinydashboard::valueBox(value = paste0(recall,"%"), subtitle = "Recall Score", icon = icon("circle-xmark"))
     # })
     # output$f1Box = renderValueBox({
-    #   valueBox(value = f1, subtitle = "F1 Score", icon = icon("check"))
+    #   shinydashboard::valueBox(value = f1, subtitle = "F1 Score", icon = icon("check"))
     # })
     output$totalData = renderValueBox({
-      valueBox(value = nrow(compare), subtitle = "Number of Candles Backtested", icon = icon("vials"))
+      shinydashboard::valueBox(value = nrow(compare), subtitle = "Number of Candles Backtested", icon = icon("vials"))
     })
     output$predictedHits = renderValueBox({
-      valueBox(value = nrow(compare[compare$decision == 1,]), subtitle = "Predicted Buy Signals", icon = icon("vials"))
+      shinydashboard::valueBox(value = nrow(compare[compare$decision == 1,]), subtitle = "Predicted Buy Signals", icon = icon("vials"))
     })
     # output$Buy = renderInfoBox({infoBox("Profitable Trades", paste0(round(yes.buy.correct.perc, digits = 2), "%"), icon = icon("thumbs-up"))
     # })
@@ -1355,57 +1375,57 @@ server <- function(input, output, session) {
   #     output$detailedHolderInfo = renderDataTable(datatable(holder.coin.df, style = "bootstrap", rownames = FALSE, selection = "none"))
   #     
   #     output$balance = renderValueBox(
-  #       valueBox(value = holder.info$quantity[input$holderInfo_rows_selected], subtitle = "Balance (coin)", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       shinydashboard::valueBox(value = holder.info$quantity[input$holderInfo_rows_selected], subtitle = "Balance (coin)", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #     )
   #     
   #     output$status = renderValueBox(
-  #       valueBox(value = "Active", subtitle = "Status", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       shinydashboard::valueBox(value = "Active", subtitle = "Status", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #     )
   #     
   #     
   #     if(sum.trades >= 0){
   #       output$ThirtyDayChange = renderValueBox(
-  #         valueBox(value = paste0("+",sum.trades), subtitle = "30 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #         shinydashboard::valueBox(value = paste0("+",sum.trades), subtitle = "30 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #       )
   #       output$dynamics = renderValueBox(
-  #         valueBox(value = "Coins In", subtitle = "Coin Movement Over 30 Days", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #         shinydashboard::valueBox(value = "Coins In", subtitle = "Coin Movement Over 30 Days", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #       )
   #     }else{
   #       output$ThirtyDayChange = renderValueBox(
-  #         valueBox(value = paste0(sum.trades), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #         shinydashboard::valueBox(value = paste0(sum.trades), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #       )
   #       output$dynamics = renderValueBox(
-  #         valueBox(value = "Coins Out", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #         shinydashboard::valueBox(value = "Coins Out", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #       )
   #     }
   #     
   #     if(sum.trades.seven >= 0){
   #       output$SevenDayChange = renderValueBox(
-  #         valueBox(value = paste0("+",sum.trades.seven), subtitle = "7 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #         shinydashboard::valueBox(value = paste0("+",sum.trades.seven), subtitle = "7 Day Coin Change", color = "green", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #       )
   #     }else{
   #       output$SevenDayChange = renderValueBox(
-  #         valueBox(value = paste0(sum.trades.seven), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #         shinydashboard::valueBox(value = paste0(sum.trades.seven), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #       )
   #     }
   #     
   #     output$percentHeld = renderValueBox(
-  #       valueBox(value = holder.info$percentage[input$holderInfo_rows_selected], subtitle = "Percentage of Circulating Supply Held", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       shinydashboard::valueBox(value = holder.info$percentage[input$holderInfo_rows_selected], subtitle = "Percentage of Circulating Supply Held", color = "orange", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #     )
   #   }else{
   #     output$status = renderValueBox(
-  #       valueBox(value = "Not Active", subtitle = "Status", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       shinydashboard::valueBox(value = "Not Active", subtitle = "Status", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #     )
   #     
   #     
   #     output$ThirtyDayChange = renderValueBox(
-  #       valueBox(value = paste0("No Activity"), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       shinydashboard::valueBox(value = paste0("No Activity"), subtitle = "30 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #     )
   #     output$SevenDayChange = renderValueBox(
-  #       valueBox(value = paste0("No Activity"), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       shinydashboard::valueBox(value = paste0("No Activity"), subtitle = "7 Day Coin Change", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #     )
   #     output$dynamics = renderValueBox(
-  #       valueBox(value = "No Activity", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#valuebox")
+  #       shinydashboard::valueBox(value = "No Activity", subtitle = "Coin Movement Over 30 Days", color = "red", href = "https://rstudio.github.io/shinydashboard/structure.html#shinydashboard::valueBox")
   #     )
   #     
   #     
@@ -1436,8 +1456,16 @@ server <- function(input, output, session) {
     
     returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF)
     fig.pie1 = CreatePie(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF)
-    output$ffBacktestTable = renderDataTable(datatable(returned.data$df.summarized, style = "bootstrap"))
+    fig.pie2 = returned.data$pie2
+    
+    output$ffBacktestTable = renderDataTable(datatable(returned.data$df.summarized, style = "bootstrap", selection = list(mode = "multiple", selected = 1),
+                                                       extensions = 'Buttons',
+                                                       options = list(dom = "Bfrtip",
+                                                                      buttons = c('csv'))) %>%
+                                               formatStyle('Result',
+                                                           backgroundColor = styleEqual(c("Miss","Beat"), c('darkred','lightgreen'))))
     output$pieChart1 = renderPlotly(fig.pie1)
+    output$pieChart2 = renderPlotly(fig.pie2)
     updateSelectInput(session = session, inputId = "subCategory", label = "Select a Sub-Category to Filter", choices = returned.data$unique.sub.topics)
   })
   
@@ -1451,7 +1479,27 @@ server <- function(input, output, session) {
     
     returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,sub.category)
     
-    output$ffBacktestTable = renderDataTable(datatable(returned.data$df.summarized, style = "bootstrap"))
+    
+    output$ffBacktestTable = renderDataTable(datatable(returned.data$df.summarized, style = "bootstrap", selection = list(mode = "multiple",selected = 1),
+                                                       extensions = 'Buttons',
+                                                       options = list(dom = "Bfrtip",
+                                                                      buttons = c('csv')))%>%
+                                               formatStyle('Result',
+                                                           backgroundColor = styleEqual(c("Miss","Beat"), c('darkred','lightgreen'))))
+    
+  })
+  
+  observeEvent(input$ffBacktestTable_rows_selected, {
+    newsRegion = input$newsRegion
+    newsTopic = input$newsTopic
+    dateRangeFF = input$dateRangeFF
+    assetType = input$assetType
+    timeframeFF = input$timeframeFF
+    sub.category = input$subCategory
+    
+    plot = CreateTimeseries(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,sub.category,input$ffBacktestTable_rows_selected)
+    
+    output$timeSeriesPlot = renderPlotly(plot)
   })
   
   

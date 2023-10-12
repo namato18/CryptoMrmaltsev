@@ -185,49 +185,49 @@ put_object(
 ########################################################
 ########################################################
 ######################################################## FOR FOREX
-pair = c("USDCAD", 'AUDUSD','GBPUSD')
+# pair = c("USDCAD", 'AUDUSD','GBPUSD')
+pair = c("EURUSD", "USDCHF", "USDJPY", "CHFJPY", "CNHJPY", "NZDJPY")
 timeframe = c("5min","30min","60min")
 fallback = c(1,6,12)
 
 
-for(k in 1:length(pair)){
-  k=1
+for(k in 6:length(pair)){
   
+  
+  df.forex.historical = df.comb[grepl("red",df.comb$impact) & df.comb$actual != "" & df.comb$forecast != "" & !is.na(df.comb$Tag),]
+  df.forex.historical = na.omit(df.forex.historical)
+  
+  ts = seq(ymd('2007-08-05'),ymd('2023-10-01'),by='2 weeks')
+  
+  forex.historical.thirty.comb = possibly_riingo_fx_prices(ticker = pair[k],
+                                                           resample_frequency = "5min")[0,]
+  for(i in 1:length(ts)){
+    dat = possibly_riingo_fx_prices(ticker = pair[k],
+                                    start_date = ts[i] - 14,
+                                    end_date = ts[i],
+                                    resample_frequency = "5min")
+    if(is.null(nrow(dat))){
+      print(paste0("ERROR FOUND AT ",i))
+      next()
+    }
+    
+    forex.historical.thirty.comb = rbind(forex.historical.thirty.comb,dat)
+    print(paste0(i," of: ",length(ts)))
+  }
+  
+  if(any(duplicated(forex.historical.thirty.comb$date))){
+    forex.historical.thirty.comb = forex.historical.thirty.comb[-which(duplicated(forex.historical.thirty.comb$date)),]
+  }
+  
+  df.forex.historical$one.hr.back = NA
+  df.forex.historical$thirty.min.back = NA
+  df.forex.historical$price.news.break = NA
+  df.forex.historical$thirty.min.forward = NA
+  df.forex.historical$one.hr.forward = NA
+
   for(j in 1:length(fallback)){
-    j=1
     
     numeric_value <- as.numeric(str_extract(timeframe[j], "\\d+"))
-    
-    df.forex.historical = df.comb[grepl("red",df.comb$impact) & df.comb$actual != "" & df.comb$forecast != "" & !is.na(df.comb$Tag),]
-    df.forex.historical = na.omit(df.forex.historical)
-    
-    ts = seq(ymd('2007-08-05'),ymd('2023-10-01'),by='2 weeks')
-    
-    forex.historical.thirty.comb = possibly_riingo_fx_prices(ticker = pair[k],
-                                                             resample_frequency = "5min")[0,]
-    for(i in 1:length(ts)){
-      dat = possibly_riingo_fx_prices(ticker = pair[k],
-                                      start_date = ts[i] - 14,
-                                      end_date = ts[i],
-                                      resample_frequency = "5min")
-      if(is.null(nrow(dat))){
-        print(paste0("ERROR FOUND AT ",i))
-        next()
-      }
-      
-      forex.historical.thirty.comb = rbind(forex.historical.thirty.comb,dat)
-      print(paste0(i," of: ",length(ts)))
-    }
-    
-    if(any(duplicated(forex.historical.thirty.comb$date))){
-      forex.historical.thirty.comb = forex.historical.thirty.comb[-which(duplicated(forex.historical.thirty.comb$date)),]
-    }
-    
-    df.forex.historical$one.hr.back = NA
-    df.forex.historical$thirty.min.back = NA
-    df.forex.historical$price.news.break = NA
-    df.forex.historical$thirty.min.forward = NA
-    df.forex.historical$one.hr.forward = NA
     
     for(i in 1:nrow(df.forex.historical)){
       ind = which(as_datetime(forex.historical.thirty.comb$date) == df.forex.historical$POSIXct[i])
@@ -235,16 +235,16 @@ for(k in 1:length(pair)){
         next()
       }
       
-      df.forex.historical$one.hr.back[i] = forex.historical.thirty.comb$close[ind-(fallback[j]*2)]
-      df.forex.historical$thirty.min.back[i] = forex.historical.thirty.comb$close[ind-(fallback[j])]
-      df.forex.historical$price.news.break[i] = forex.historical.thirty.comb$close[ind]
-      df.forex.historical$thirty.min.forward[i] = forex.historical.thirty.comb$close[ind+(fallback[j])]
-      df.forex.historical$one.hr.forward[i] = forex.historical.thirty.comb$close[ind+(fallback[j]*2)]
+      df.forex.historical$one.hr.back[i] = forex.historical.thirty.comb$open[ind-(fallback[j]*2)]
+      df.forex.historical$thirty.min.back[i] = forex.historical.thirty.comb$open[ind-(fallback[j])]
+      df.forex.historical$price.news.break[i] = forex.historical.thirty.comb$open[ind]
+      df.forex.historical$thirty.min.forward[i] = forex.historical.thirty.comb$open[ind+(fallback[j])]
+      df.forex.historical$one.hr.forward[i] = forex.historical.thirty.comb$open[ind+(fallback[j]*2)]
       print(i)
     }
     df.forex.news.prices = na.omit(df.forex.historical)
     
-    colnames(df.forex.news.prices)[c(11,12,14,15)] = c(paste0(numeric_value*2,"min.back"),
+    colnames(df.forex.news.prices)[c(12,13,15,16)] = c(paste0(numeric_value*2,"min.back"),
                                                        paste0(numeric_value,"min.back"),
                                                        paste0(numeric_value,"min.forward"),
                                                        paste0(numeric_value*2,"min.forward"))

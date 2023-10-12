@@ -2032,25 +2032,26 @@ Backtest.AV <- function(df, startDate, endDate, topic, type){
 ##############################################################
 
 BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"){
-  # region = "USD"
-  # asset = "USDCAD"
-  # timeframe = "5min"
-  # topic = "Growth"
-  # start_date = "2018-01-01"
-  # end_date = "2023-01-01"
+ # region = "USD"
+ # asset = "AUDUSD"
+ # timeframe = "5min"
+ # topic = "Inflation"
+ # date.range = c("2023-01-01",'2023-09-01')
+ # sub.filter = "PPI m/m"
+  
   timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
-  # sub.filter = "All"
+  
   
   if(asset == "SPY"){
     type = "stock"
-  }else if(asset == "BTCUSDT"){
-    type = "crypto"
+  # }else if(asset == "BTCUSDT"){
+  #   type = "crypto"
   }else{
     type = "forex"
   }
   
   df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices", object = paste0("df.",type,".news.prices.",asset,timeframe,".rds"))
-  
+
   df$formatted_dates <- as.factor(format(df$POSIXct, "%B %Y"))
   
   if(sub.filter != "All"){
@@ -2059,11 +2060,11 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
   }
   
   df = df %>%
-    filter(currency == region & Tag == topic) %>%
+    filter(currency == region & Tag == topic & df$POSIXct >= date.range[1] & df$POSIXct <= date.range[2]) %>%
     group_by(formatted_dates)
   
-  df.to.summarize = df[,c(5,6,11:16)]
-  df.to.summarize.pie = df[,c(4,12:14)]
+  df.to.summarize = df[,c(5,6,12:17)]
+  df.to.summarize.pie = df[,c(4,13:15)]
   colnames(df.to.summarize.pie) = c("title","once.back","current","once.forward")
   colnames(df.to.summarize) = c("actual","forecast","double.back","once.back","current","once.forward","double.forward","formatted_dates")
   
@@ -2076,9 +2077,12 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
   
   df.to.summarize.pie$Change = df.to.summarize.pie$Change.Backward + df.to.summarize.pie$Change.Forward
   
-  x.pie = summarize(df.to.summarize.pie, sum.change = sum(Change))
+  x.pie = summarize(df.to.summarize.pie, sum.change = mean(Change))
   
-  fig.pie1 = plot_ly(x.pie, labels = ~title, values = ~sum.change, type = "pie")
+  fig.pie1 = plot_ly(x.pie, labels = ~title, values = ~sum.change, type = "pie")  %>%
+    layout(paper_bgcolor = "transparent",
+           font = list(color = 'white'),
+           title = paste0("Pie Chart for ",topic))
   ##
   
   df.to.summarize$actual = as.numeric(sub("%","",df.to.summarize$actual))
@@ -2118,6 +2122,8 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
   unique.sub.topics = setNames(unique(df$event.title), unique(df$event.title))
   unique.sub.topics = c(set.all,unique.sub.topics)
   
+  df.summarized = df.summarized %>% arrange(my(df.summarized$Month))
+  
   to.return = list(df.summarized = df.summarized,
                    unique.sub.topics = unique.sub.topics,
                    pie2 = fig.pie1)
@@ -2132,18 +2138,20 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
 
 CreatePie <- function(region,topic,date.range,asset,timeframe,sub.filter = "All"){
   # region = "USD"
-  # asset = "USDCAD"
+  # asset = "AUDUSD"
   # timeframe = "5min"
   # topic = "Growth"
   # start_date = "2018-01-01"
   # end_date = "2023-01-01"
-  timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
   # sub.filter = "All"
+  
+  timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
+
   
   if(asset == "SPY"){
     type = "stock"
-  }else if(asset == "BTCUSDT"){
-    type = "crypto"
+  # }else if(asset == "BTCUSDT"){
+  #   type = "crypto"
   }else{
     type = "forex"
   }
@@ -2153,10 +2161,10 @@ CreatePie <- function(region,topic,date.range,asset,timeframe,sub.filter = "All"
   df$formatted_dates <- as.factor(format(df$POSIXct, "%B %Y"))
   
   df = df %>%
-    filter(currency == region) %>%
+    filter(currency == region & df$POSIXct >= date.range[1] & df$POSIXct <= date.range[2]) %>%
     group_by(Tag)
   
-  df.for.pie = df[,c(9,12,13,14)]
+  df.for.pie = df[,c(10,13,14,15)]
 
   colnames(df.for.pie) = c('Tag', "Once.Back",'Current', 'Once.Forward')
   
@@ -2165,12 +2173,90 @@ CreatePie <- function(region,topic,date.range,asset,timeframe,sub.filter = "All"
   
   df.for.pie$Change = df.for.pie$Change.Backward + df.for.pie$Change.Forward
   
-  x = summarize(df.for.pie, sum.change = sum(Change))
+  x = summarize(df.for.pie, sum.change = mean(Change))
   
   fig.pie = plot_ly(x, labels = ~Tag, values = ~sum.change, type = "pie") %>%
     layout(paper_bgcolor = "transparent",
-           font = list(color = 'white'))
+           font = list(color = 'white'),
+           title = "Pie Chart Overview")
   
   return(fig.pie)
+}
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+CreateTimeseries <- function(region,topic,date.range,asset,timeframe,sub.filter = "All",timeseries.selected){
+  # region = "USD"
+  # asset = "USDCAD"
+  # timeframe = "5min"
+  # topic = "Growth"
+  # start_date = "2018-01-01"
+  # end_date = "2023-01-01"
+  # sub.filter = "All"
+  # timeseries.selected = c(1,2)
+  
+  timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
+
+  
+  if(asset == "SPY"){
+    type = "stock"
+  # }else if(asset == "BTCUSDT"){
+  #   type = "crypto"
+  }else{
+    type = "forex"
+  }
+  
+  df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices", object = paste0("df.",type,".news.prices.",asset,timeframe,".rds"))
+  
+  df$formatted_dates <- as.factor(format(df$POSIXct, "%B %Y"))
+  
+  if(sub.filter != "All"){
+    df = df %>%
+      filter(event.title == sub.filter)
+  }
+  
+  df = df %>%
+    filter(currency == region & Tag == topic & df$POSIXct >= date.range[1] & df$POSIXct <= date.range[2]) %>%
+    group_by(formatted_dates)
+  
+  unique.months = unique(df$formatted_dates)
+  
+  # selected.filter.df = df %>%
+  #   filter(formatted_dates == unique.months[timeseries.selected] & !duplicated(date))
+  
+  selected.filter.df = df %>%
+    filter(!duplicated(date))
+  selected.filter.df = selected.filter.df[grepl(pattern = paste0(unique.months[timeseries.selected], collapse = "|"),selected.filter.df$formatted_dates), ]
+  
+  for(i in 1:nrow(selected.filter.df)){
+    x = selected.filter.df[i,c(12:16)]
+    x.axis = c(paste0(timeframe.numeric*2," min back"),paste0(timeframe.numeric," min back"),paste0("news break"),paste0(timeframe.numeric," min forward"),paste0(timeframe.numeric*2," min forward"))
+    
+    current.price = x[,3][[1]]
+    prices = c()
+    for(j in 1:ncol(x)){
+      pr = (x[1,j][[1]] - current.price) / current.price * 100
+      prices = c(prices, pr)
+    }
+    if(i == 1){
+      plot1 = plot_ly(x = x.axis, y = prices, type="scatter", mode="lines", name = selected.filter.df$POSIXct[i]) %>%
+        layout(
+          xaxis = list(categoryorder = "array", categoryarray = x.axis),
+          title = "Time-Series of News Break"
+        )
+    }else{
+      plot1 = plot1 %>%
+        add_trace(x = x.axis, y = prices, mode="lines",name = selected.filter.df$POSIXct[i])
+    }
+
+    
+  }
+  
+  return(plot1)
+
 }
 

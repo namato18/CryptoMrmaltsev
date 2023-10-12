@@ -212,6 +212,7 @@ df.comb = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFac
 tic()
 for(i in 1:length(ts.test)){
   df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/WithImpact", object = paste0("df_",week.test[i],".rds"))
+
   
   if(is.null(nrow(df))){
     print(paste0("Error'd out at: ",i))
@@ -234,10 +235,14 @@ df.comb$Tag[grep("consumer|sentiment",df.comb$event.title, ignore.case = TRUE)] 
 df.comb$Tag[grep("PMI|business climate|manufacturing index|business index",df.comb$event.title, ignore.case = TRUE)] = "Business Surveys"
 df.comb$Tag[grep("speaks",df.comb$event.title, ignore.case = TRUE)] = "Speeches"
 
-df.comb$POSIXct = paste0(df.comb$date," ",df.comb$time) %>%
-  strptime(format = "%a %b %d %Y %I:%M%p") %>%
-  as.POSIXct(tz = "UTC")
+df.comb$POSIXct = as.POSIXct(df.comb$date.string, tz = "UTC")
 
+#df.comb$POSIXct = paste0(df.comb$date," ",df.comb$time) %>%
+#  strptime(format = "%a %b %d %Y %I:%M%p") %>%
+#  as.POSIXct(tz = "UTC")
+
+
+# Adjust for paris time
 # saveRDS(df.comb,"AlphaVantageData/df.tagged.rds")
 
 
