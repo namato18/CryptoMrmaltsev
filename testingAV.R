@@ -237,6 +237,10 @@ df.comb$Tag[grep("speaks",df.comb$event.title, ignore.case = TRUE)] = "Speeches"
 
 df.comb$POSIXct = as.POSIXct(df.comb$date.string, tz = "UTC")
 
+ind = which(df.comb$actual == "" | df.comb$forecast == "")
+df.comb$actual[ind] = 0
+df.comb$forecast[ind] = 0
+
 #df.comb$POSIXct = paste0(df.comb$date," ",df.comb$time) %>%
 #  strptime(format = "%a %b %d %Y %I:%M%p") %>%
 #  as.POSIXct(tz = "UTC")

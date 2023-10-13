@@ -186,7 +186,7 @@ put_object(
 ########################################################
 ######################################################## FOR FOREX
 # pair = c("USDCAD", 'AUDUSD','GBPUSD')
-pair = c("EURUSD", "USDCHF", "USDJPY", "CHFJPY", "CNHJPY", "NZDJPY")
+pair = c("USDCAD","AUDUSD","GBPUSD","EURUSD", "USDCHF", "USDJPY", "CHFJPY", "CNHJPY", "NZDJPY")
 timeframe = c("5min","30min","60min")
 fallback = c(1,6,12)
 
@@ -194,7 +194,7 @@ fallback = c(1,6,12)
 for(k in 6:length(pair)){
   
   
-  df.forex.historical = df.comb[grepl("red",df.comb$impact) & df.comb$actual != "" & df.comb$forecast != "" & !is.na(df.comb$Tag),]
+  df.forex.historical = df.comb[grepl("red|ora",df.comb$impact) & df.comb$actual != "" & df.comb$forecast != "" & !is.na(df.comb$Tag),]
   df.forex.historical = na.omit(df.forex.historical)
   
   ts = seq(ymd('2007-08-05'),ymd('2023-10-01'),by='2 weeks')

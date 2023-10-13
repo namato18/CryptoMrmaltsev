@@ -2032,12 +2032,12 @@ Backtest.AV <- function(df, startDate, endDate, topic, type){
 ##############################################################
 
 BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"){
- # region = "USD"
- # asset = "AUDUSD"
- # timeframe = "5min"
- # topic = "Inflation"
- # date.range = c("2023-01-01",'2023-09-01')
- # sub.filter = "PPI m/m"
+ region = "USD"
+ asset = "USDCAD"
+ timeframe = "5min"
+ topic = "Bonds"
+ date.range = c("2023-01-01",'2023-10-01')
+ sub.filter = "All"
   
   timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
   
