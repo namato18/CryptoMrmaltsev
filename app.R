@@ -635,7 +635,7 @@ ui <- secure_app(
                                                                                                       "CNY" = "CNY",
                                                                                                       "GBP" = "GBP",
                                                                                                       "JPY" = "JPY"
-                                                                                                      )),
+                             )),
                              selectInput("newsTopic", "Select a Topic to Examine", choices = list("Growth" = "Growth",
                                                                                                   "Inflation" = "Inflation",
                                                                                                   "Employment" = "Employment",
@@ -648,18 +648,31 @@ ui <- secure_app(
                              
                              dateRangeInput("dateRangeFF", label = "Select a Date Range", start = "2020-01-01" , end = "2023-09-09"),
                              selectInput("assetType", "Select an Asset Type", choices = list(
-                                                                                             "USDCAD" = "USDCAD",
-                                                                                             "GBPUSD" = "GBPUSD",
-                                                                                             "AUDUSD" = "AUDUSD",
-                                                                                             "EURUSD" = "EURUSD",
-                                                                                             "USDCHF" = "USDCHF",
-                                                                                             "USDJPY" = "USDJPY",
-                                                                                             "CHFJPY" = "CHFJPY",
-                                                                                             "CNHJPY" = "CNHJPY",
-                                                                                             "NZDJPY" = "NZDJPY")),
+                               "USDCAD" = "USDCAD",
+                               "GBPUSD" = "GBPUSD",
+                               "AUDUSD" = "AUDUSD",
+                               "EURUSD" = "EURUSD",
+                               "USDCHF" = "USDCHF",
+                               "USDJPY" = "USDJPY",
+                               "CHFJPY" = "CHFJPY",
+                               "CNHJPY" = "CNHJPY",
+                               "NZDJPY" = "NZDJPY",
+                               "ETHUSDT" = "ETHUSDT",
+                               "BTCUSDT" = "BTCUSDT",
+                               "BNBUSDT" = "BNBUSDT",
+                               "LINKUSDT" = "LINKUSDT",
+                               "SOLUSDT" = "SOLUSDT",
+                               "INJUSDT" = "INJUSDT",
+                               "SNXUSDT" = "SNXUSDT",
+                               "DYDXUSDT" = "DYDXUSDT",
+                               "MATICUSDT" = "MATICUSDT")),
                              selectInput("timeframeFF","Select a Timeframe to Analyze", choices = list("5 Minutes" = "5min",
                                                                                                        "30 Minutes" = "30min",
                                                                                                        "1 Hour" = "60min")),
+                             selectInput("selectImpact", "Select an Impact", choices = list("All" = "All",
+                                                                                            "Red" = "red",
+                                                                                            "Orange" = "ora",
+                                                                                            "Yellow" = "yel")),
                              actionButton("generateBacktestFF", "Generate Backtest")
                              
                          )
@@ -679,7 +692,7 @@ ui <- secure_app(
                       dataTableOutput("ffBacktestTable")
                   ),
                   box(title = "Time Series Plot", status = "primary", solidHeader = TRUE, width = 12,
-                    plotlyOutput("timeSeriesPlot")
+                      plotlyOutput("timeSeriesPlot")
                   )
                   
                 )
@@ -1453,17 +1466,21 @@ server <- function(input, output, session) {
     dateRangeFF = input$dateRangeFF
     assetType = input$assetType
     timeframeFF = input$timeframeFF
+    impactFF = input$selectImpact
     
-    returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF)
-    fig.pie1 = CreatePie(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF)
+    returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,impactFF)
+    fig.pie1 = CreatePie(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF, impactFF)
     fig.pie2 = returned.data$pie2
     
-    output$ffBacktestTable = renderDataTable(datatable(returned.data$df.summarized, style = "bootstrap", selection = list(mode = "multiple", selected = 1),
-                                                       extensions = 'Buttons',
-                                                       options = list(dom = "Bfrtip",
-                                                                      buttons = c('csv'))) %>%
-                                               formatStyle('Result',
-                                                           backgroundColor = styleEqual(c("Miss","Beat"), c('darkred','lightgreen'))))
+    output$ffBacktestTable = DT::renderDT(server = FALSE, {
+      datatable(returned.data$df.summarized, style = "bootstrap", selection = list(mode = "multiple", selected = 1),
+                extensions = 'Buttons',
+                options = list(dom = "Bfrtip",
+                               buttons = "csv")) %>%
+        formatStyle('Result',
+                    backgroundColor = styleEqual(c("Miss","Beat"), c('darkred','lightgreen')))
+    }
+    )
     output$pieChart1 = renderPlotly(fig.pie1)
     output$pieChart2 = renderPlotly(fig.pie2)
     updateSelectInput(session = session, inputId = "subCategory", label = "Select a Sub-Category to Filter", choices = returned.data$unique.sub.topics)
@@ -1476,16 +1493,20 @@ server <- function(input, output, session) {
     assetType = input$assetType
     timeframeFF = input$timeframeFF
     sub.category = input$subCategory
+    impactFF = input$selectImpact
     
-    returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,sub.category)
+    returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,impactFF,sub.category)
     
     
-    output$ffBacktestTable = renderDataTable(datatable(returned.data$df.summarized, style = "bootstrap", selection = list(mode = "multiple",selected = 1),
-                                                       extensions = 'Buttons',
-                                                       options = list(dom = "Bfrtip",
-                                                                      buttons = c('csv')))%>%
-                                               formatStyle('Result',
-                                                           backgroundColor = styleEqual(c("Miss","Beat"), c('darkred','lightgreen'))))
+    output$ffBacktestTable = DT::renderDT(server = FALSE, {
+      datatable(returned.data$df.summarized, style = "bootstrap", selection = list(mode = "multiple",selected = 1),
+                extensions = 'Buttons',
+                options = list(dom = "Bfrtip",
+                               buttons = c('csv')))%>%
+        formatStyle('Result',
+                    backgroundColor = styleEqual(c("Miss","Beat"), c('darkred','lightgreen')))
+      
+    })
     
   })
   
@@ -1496,8 +1517,9 @@ server <- function(input, output, session) {
     assetType = input$assetType
     timeframeFF = input$timeframeFF
     sub.category = input$subCategory
+    impactFF = input$selectImpact
     
-    plot = CreateTimeseries(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,sub.category,input$ffBacktestTable_rows_selected)
+    plot = CreateTimeseries(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,impactFF,sub.category,input$ffBacktestTable_rows_selected)
     
     output$timeSeriesPlot = renderPlotly(plot)
   })

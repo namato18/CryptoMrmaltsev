@@ -236,6 +236,7 @@ df.comb$Tag[grep("PMI|business climate|manufacturing index|business index",df.co
 df.comb$Tag[grep("speaks",df.comb$event.title, ignore.case = TRUE)] = "Speeches"
 
 df.comb$POSIXct = as.POSIXct(df.comb$date.string, tz = "UTC")
+df.comb$POSIXct = lubridate::round_date(df.comb$POSIXct, "5 minutes")
 
 ind = which(df.comb$actual == "" | df.comb$forecast == "")
 df.comb$actual[ind] = 0

@@ -935,9 +935,9 @@ predict.tomorrow.multiple <- function(Type,Symbols, Timeframe, SuccessThreshold,
 predict_week = function(symbol, timeframe,type){
 
   symbol = toupper(symbol)
-  # symbol = 'AAPL'
+  # symbol = 'ETHUSDT'
   # timeframe = 'daily'
-  # type = "Stocks"
+  # type = "Crypto"
   data = data.frame(getSymbols.tiingo(Symbols = symbol, auto.assign = FALSE,api.key = '6fbd6ce7c9e035489f6238bfab127fcedbe34ac2', periodicity = timeframe))
   # data = data.frame(getSymbols(symbol, auto.assign = FALSE, periodicity = timeframe))
   data = data[,1:4]
@@ -960,7 +960,7 @@ predict_week = function(symbol, timeframe,type){
                             low = NA,
                             close = NA)
     }else{
-      data.add = data.frame(time = seq(from = as_date(Sys.Date()),
+      data.add = data.frame(time = seq(from = as_date(Sys.Date() + 1),
                                        by = "day", length.out = 7),
                             open = NA,
                             high = NA,
@@ -1110,6 +1110,7 @@ predict_week = function(symbol, timeframe,type){
       ylab("Price") +
       ggtitle(paste0("Predicted Stock Price for ",symbol)) +
       scale_x_date(date_breaks = "1 day", date_labels =  "%d %B") +
+      scale_y_continuous(limits = c(min(x$data_y, na.rm = TRUE)*.85,max(x$data_y, na.rm = TRUE)/.85)) +
       theme(axis.text.x=element_text(angle=60, hjust=1))
   }else{
     plot.out = ggplot(data = x, aes(x = times)) + 
@@ -1119,6 +1120,7 @@ predict_week = function(symbol, timeframe,type){
       ylab("Price") +
       ggtitle(paste0("Predicted Stock Price for ",symbol)) +
       scale_x_date(date_breaks = "1 week", date_labels =  "%d %B") +
+      scale_y_continuous(limits = c(min(x$data_y, na.rm = TRUE)*.85,max(x$data_y, na.rm = TRUE)/.85)) +
       theme(axis.text.x=element_text(angle=60, hjust=1))
   }
   colnames(x) = c("Past Close Price","Predicted Close Price","Date")
@@ -1583,6 +1585,9 @@ predict.next.ohlc = function(symbol, output){
 ##############################################################
 
 predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
+  # symbol = "USDCAD"
+  # timeframe = "1hour"
+  # success.thresh = "0.8"
 
   assign("predictions.df.indi1", NULL, .GlobalEnv)
   assign("predictions.df.indi2", NULL, .GlobalEnv)
@@ -1604,11 +1609,11 @@ predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
     predictions = c("BreakH","BreakL","Target")
     for(i in 1:length(predictions)){
       prediction = predictions[i]
-      
+      # 
       # symbol = "AUDUSD_1day"
       # prediction = "BreakL"
       # pair = "AUDUSD"
-      # timeframe = "1day"
+      # timeframe = "5min"
       
       df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = timeframe)
       df1 = df1[-nrow(df1),]
@@ -1620,11 +1625,18 @@ predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
       df2$date = str_replace(string = df2$date, pattern = "T", replacement = " ")
       df2$date = str_replace(string = df2$date, pattern = "Z", replacement = "")
       df2$date = as.POSIXct(df2$date, format = "%Y-%m-%d %H:%M:%S")
-      df2 = df2[,c(2,1,3:6)]
       
-      df = rbind(df1,df2)
-      
-      df = df[,-1]
+      if(!is.null(nrow(df2))){
+        df2 = df2[,c(2,1,3:6)]
+        
+        df = rbind(df1,df2)
+        
+        df = df[,-1]
+      }else{
+        df = df1
+        df = df[,-1]
+      }
+
       
       ###############################
       ############################### CHANGE NAMES
@@ -1707,7 +1719,12 @@ predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
       
       ###############################
       ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
-      df = df[nrow(df)-1,]
+      if(!is.null(nrow(df2))){
+        df = df[nrow(df)-1,]
+      }else{
+        df = df[nrow(df),]
+      }
+      
       
       previous.low = df$Low
       previous.high = df$High
@@ -2031,28 +2048,55 @@ Backtest.AV <- function(df, startDate, endDate, topic, type){
 ##############################################################
 ##############################################################
 
-BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"){
- region = "USD"
- asset = "USDCAD"
- timeframe = "5min"
- topic = "Bonds"
- date.range = c("2023-01-01",'2023-10-01')
- sub.filter = "All"
+BackTestFF = function(region,topic,date.range,asset,timeframe,impact,sub.filter = "All"){
+  # region = "USD"
+  # asset = "EURUSD"
+  # timeframe = "5min"
+  # topic = "Employment"
+  # date.range = c("2020-01-01",'2023-09-09')
+  # sub.filter = "Unemployment Claims"
+  # impact = "yel"
   
   timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
   
   
   if(asset == "SPY"){
     type = "stock"
-  # }else if(asset == "BTCUSDT"){
-  #   type = "crypto"
+  }else if(asset %in% c("ETHUSDT","BTCUSDT","BNBUSDT", "LINKUSDT","SOLUSDT", "INJUSDT","SNXUSDT","DYDXUSDT","MATICUSDT")){
+    type = "crypto"
   }else{
     type = "forex"
   }
   
   df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices", object = paste0("df.",type,".news.prices.",asset,timeframe,".rds"))
 
+  if(impact != "All"){
+    df = df[grepl(pattern = impact, x = df$impact),]
+  }
+  
   df$formatted_dates <- as.factor(format(df$POSIXct, "%B %Y"))
+  
+  ind.K.actual = grep(pattern = "K", x = df$actual)
+  ind.K.forecast = grep(pattern = "K", x = df$forecast)
+  ind.M.actual = grep(pattern = "M", x = df$actual)
+  ind.M.forecast = grep(pattern = "M", x = df$forecast)
+  ind.B.actual = grep(pattern = "B", x = df$actual)
+  ind.B.forecast = grep(pattern = "B", x = df$forecast)
+  ind.perc.actual = grep(pattern = "%", x = df$actual)
+  ind.perc.forecast = grep(pattern = "%", x = df$forecast)
+  
+  df$actual[ind.K.actual] = as.numeric(sub(pattern = "K", replacement = "", x = df$actual[ind.K.actual])) * 1000
+  df$forecast[ind.K.forecast] = as.numeric(sub(pattern = "K", replacement = "", x = df$forecast[ind.K.forecast])) * 1000
+  
+  df$actual[ind.M.actual] = as.numeric(sub(pattern = "M", replacement = "", x = df$actual[ind.M.actual])) * 1000000
+  df$forecast[ind.M.forecast] = as.numeric(sub(pattern = "M", replacement = "", x = df$forecast[ind.M.forecast])) * 1000000
+  
+  df$actual[ind.B.actual] = as.numeric(sub(pattern = "B", replacement = "", x = df$actual[ind.B.actual])) * 1000000000
+  df$forecast[ind.B.forecast] = as.numeric(sub(pattern = "B", replacement = "", x = df$forecast[ind.B.forecast])) * 1000000000
+  
+  df$actual[ind.perc.actual] = as.numeric(sub("%","",df$actual[ind.perc.actual]))
+  df$forecast[ind.perc.forecast] = as.numeric(sub("%","",df$forecast[ind.perc.forecast]))
+  
   
   if(sub.filter != "All"){
     df = df %>%
@@ -2084,9 +2128,7 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
            font = list(color = 'white'),
            title = paste0("Pie Chart for ",topic))
   ##
-  
-  df.to.summarize$actual = as.numeric(sub("%","",df.to.summarize$actual))
-  df.to.summarize$forecast = as.numeric(sub("%","",df.to.summarize$forecast))
+
   
   char_cols <- sapply(df.to.summarize, is.character)
   df.to.summarize[char_cols] = lapply(df.to.summarize[char_cols], as.numeric)
@@ -2095,6 +2137,7 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
   
   df.summarized$Result = "Beat"
   df.summarized$Result[df.summarized$actual < df.summarized$forecast] = "Miss"
+  df.summarized$Result[df.summarized$actual == df.summarized$forecast] = "Neutral"
   df.summarized$double.back.perc = paste0(round((df.summarized$double.back - df.summarized$current) / df.summarized$current * 100, 3),"%")
   df.summarized$once.back.perc = paste0(round((df.summarized$once.back - df.summarized$current) / df.summarized$current * 100, 3),"%")
   df.summarized$once.forward.perc = paste0(round((df.summarized$once.forward - df.summarized$current) / df.summarized$current * 100, 3),"%")
@@ -2136,9 +2179,9 @@ BackTestFF = function(region,topic,date.range,asset,timeframe,sub.filter = "All"
 ##############################################################
 ##############################################################
 
-CreatePie <- function(region,topic,date.range,asset,timeframe,sub.filter = "All"){
+CreatePie <- function(region,topic,date.range,asset,timeframe,impact,sub.filter = "All"){
   # region = "USD"
-  # asset = "AUDUSD"
+  # asset = "ETHUSDT"
   # timeframe = "5min"
   # topic = "Growth"
   # start_date = "2018-01-01"
@@ -2150,13 +2193,17 @@ CreatePie <- function(region,topic,date.range,asset,timeframe,sub.filter = "All"
   
   if(asset == "SPY"){
     type = "stock"
-  # }else if(asset == "BTCUSDT"){
-  #   type = "crypto"
+  }else if(asset %in% c("ETHUSDT","BTCUSDT","BNBUSDT", "LINKUSDT","SOLUSDT", "INJUSDT","SNXUSDT","DYDXUSDT","MATICUSDT")){
+    type = "crypto"
   }else{
     type = "forex"
   }
   
   df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices", object = paste0("df.",type,".news.prices.",asset,timeframe,".rds"))
+  
+  if(impact != "All"){
+    df = df[grepl(pattern = impact, x = df$impact),]
+  }
   
   df$formatted_dates <- as.factor(format(df$POSIXct, "%B %Y"))
   
@@ -2189,7 +2236,7 @@ CreatePie <- function(region,topic,date.range,asset,timeframe,sub.filter = "All"
 ##############################################################
 ##############################################################
 
-CreateTimeseries <- function(region,topic,date.range,asset,timeframe,sub.filter = "All",timeseries.selected){
+CreateTimeseries <- function(region,topic,date.range,asset,timeframe,impact,sub.filter = "All",timeseries.selected){
   # region = "USD"
   # asset = "USDCAD"
   # timeframe = "5min"
@@ -2204,13 +2251,17 @@ CreateTimeseries <- function(region,topic,date.range,asset,timeframe,sub.filter 
   
   if(asset == "SPY"){
     type = "stock"
-  # }else if(asset == "BTCUSDT"){
-  #   type = "crypto"
+  }else if(asset %in% c("ETHUSDT","BTCUSDT","BNBUSDT", "LINKUSDT","SOLUSDT", "INJUSDT","SNXUSDT","DYDXUSDT","MATICUSDT")){
+    type = "crypto"
   }else{
     type = "forex"
   }
   
   df = possibly_s3read_using(FUN = readRDS, bucket = "cryptomlbucket/ForexFactoryData/News_With_Prices", object = paste0("df.",type,".news.prices.",asset,timeframe,".rds"))
+  
+  if(impact != "All"){
+    df = df[grepl(pattern = impact, x = df$impact),]
+  }
   
   df$formatted_dates <- as.factor(format(df$POSIXct, "%B %Y"))
   
