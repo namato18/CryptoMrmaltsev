@@ -1101,6 +1101,8 @@ predict_week = function(symbol, timeframe,type){
   }
   
   x$predicted_y[!is.na(x$data_y) & !is.na(x$predicted_y)] = x$data_y[!is.na(x$data_y) & !is.na(x$predicted_y)] 
+  
+  for.scale = c(x$data_y,x$predicted_y)
 
   if(timeframe == 'daily'){
     plot.out = ggplot(data = x, aes(x = times)) + 
@@ -1110,7 +1112,7 @@ predict_week = function(symbol, timeframe,type){
       ylab("Price") +
       ggtitle(paste0("Predicted Stock Price for ",symbol)) +
       scale_x_date(date_breaks = "1 day", date_labels =  "%d %B") +
-      scale_y_continuous(limits = c(min(x$data_y, na.rm = TRUE)*.85,max(x$data_y, na.rm = TRUE)/.85)) +
+      scale_y_continuous(limits = c(min(for.scale, na.rm = TRUE),max(for.scale, na.rm = TRUE))) +
       theme(axis.text.x=element_text(angle=60, hjust=1))
   }else{
     plot.out = ggplot(data = x, aes(x = times)) + 
@@ -1120,7 +1122,7 @@ predict_week = function(symbol, timeframe,type){
       ylab("Price") +
       ggtitle(paste0("Predicted Stock Price for ",symbol)) +
       scale_x_date(date_breaks = "1 week", date_labels =  "%d %B") +
-      scale_y_continuous(limits = c(min(x$data_y, na.rm = TRUE)*.85,max(x$data_y, na.rm = TRUE)/.85)) +
+      scale_y_continuous(limits = c(min(for.scale, na.rm = TRUE),max(for.scale, na.rm = TRUE))) +
       theme(axis.text.x=element_text(angle=60, hjust=1))
   }
   colnames(x) = c("Past Close Price","Predicted Close Price","Date")
