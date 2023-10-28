@@ -7,6 +7,16 @@ library(dplyr)
 library(aws.s3)
 library(xts)
 library(xgboost)
+library(httr)
+library(CandleStickPattern)
+library(quantmod)
+
+httr::set_config(config(ssl_verifypeer = FALSE, ssl_verifyhost = FALSE))
+
+
+ts.seq = seq(ymd("2023-01-01"), ymd(Sys.Date()), by="2 weeks")
+ts.seq = format(ts.seq, format = "%Y%m%dT%H%M")
+api.key = "1RF2MSZAZY8XHUGV"
 
 Sys.setenv(
   "AWS_ACCESS_KEY_ID" = "AKIAZI3NHYNJ2L5YMIHV",
@@ -17,7 +27,7 @@ Sys.setenv(
 
 Sys.setenv(TZ='UTC')
 
-api.key = "1RF2MSZAZY8XHUGV"
+
 
 # Funding rate data
 funding.data = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FundingData", object = "FundingData.rds")
@@ -28,7 +38,19 @@ fd.for.merge$date.8hr = as.character(fd.for.merge$date.8hr)
 #
 
 x = riingo_crypto_prices("BTCUSDT", start_date = Sys.Date() - lubridate::dmonths(5), end_date = Sys.Date(), resample_frequency = "1hour")
+x2 = riingo_crypto_prices("BTCUSDT", start_date = Sys.Date() - lubridate::dmonths(10), end_date = Sys.Date() - lubridate::dmonths(5), resample_frequency = "1hour")
+
 x = x[,c(1,4:9)]
+x2 = x2[,c(1,4:9)]
+
+x = rbind(x2, x)
+
+ind = which(duplicated(x$date))
+
+if(length(ind > 0)){
+  x = x[-ind,]
+}
+
 
 # trend detection
 x.xts = as.xts(x)
@@ -46,8 +68,7 @@ x$date.8hr = as.character(floor_date(x$date, "8hour"))
 start.time = format(x$date[1] - lubridate::days(21), format = "%Y%m%dT%H%M")
 end.time = format(x$date[1], format = "%Y%m%dT%H%M")
 
-ts.seq = seq(ymd("2023-01-01"), ymd(Sys.Date()), by="2 weeks")
-ts.seq = format(ts.seq, format = "%Y%m%dT%H%M")
+
 
 # webscrape fear
 
@@ -74,28 +95,29 @@ colnames(df.fg.for.merge) = c("rating", "just.date")
 # for(i in 2:length(ts.seq)){
 #   full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
 #   # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=","20231008T0000","&time_to=","20231022T0000","&sort=EARLIEST&apikey=",api.key)
-#   
+# 
 #   test_get = httr::GET(full.url)
-#   
+# 
 #   test_get$status_code
-#   
+# 
 #   test = rawToChar(test_get$content)
-#   
+# 
 #   test = fromJSON(test, flatten = TRUE)
 #   df = test$feed
-#   
+# 
 #   if(i == 2){
 #     df.comb = df
 #   }else{
 #     df.comb = rbind(df.comb,df)
 #   }
-#   
+# 
+#   print(paste0(i, " of: ", length(ts.seq)))
 #   Sys.sleep(21)
 # }
 # 
 # saveRDS(df.comb, "df.comb.historical.btc.rds")
 
-df.comb = readRDS("df.comb.historical.btc.rds")
+# df.comb = readRDS("df.comb.historical.btc.rds")
 
 ind = which(duplicated(df.comb$title) & duplicated(df.comb$overall_sentiment_score))
 
