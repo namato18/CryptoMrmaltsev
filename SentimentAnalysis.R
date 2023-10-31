@@ -10,6 +10,7 @@ library(xgboost)
 library(httr)
 library(CandleStickPattern)
 library(quantmod)
+library(caret)
 
 httr::set_config(config(ssl_verifypeer = FALSE, ssl_verifyhost = FALSE))
 
@@ -93,7 +94,8 @@ colnames(df.fg.for.merge) = c("rating", "just.date")
 
 
 # for(i in 2:length(ts.seq)){
-#   full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
+#   i=2
+#   full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:MATIC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
 #   # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=","20231008T0000","&time_to=","20231022T0000","&sort=EARLIEST&apikey=",api.key)
 # 
 #   test_get = httr::GET(full.url)
@@ -114,7 +116,7 @@ colnames(df.fg.for.merge) = c("rating", "just.date")
 #   print(paste0(i, " of: ", length(ts.seq)))
 #   Sys.sleep(21)
 # }
-# 
+
 # saveRDS(df.comb, "df.comb.historical.btc.rds")
 
 # df.comb = readRDS("df.comb.historical.btc.rds")
@@ -224,7 +226,14 @@ df = x %>%
   select(upTrend, downTrend, rating, vix.open, funding.rate, news.1hr, news.8hr, news.24hr,
          VC.1, VC.8, VC.24, OO.1, OO.8, OO.24)
 df[] <- lapply(df, as.numeric)
+
+
+# SET OUTCOMES
 outcomes = x$OH
+outcomes = rep(0, nrow(df))
+outcomes[x$OH >= 0.5] = 1
+#
+
 
 set.seed(123)
 sample.split = sample(c(TRUE,FALSE), nrow(df), replace = TRUE, prob=c(0.8,0.2))
@@ -239,18 +248,47 @@ out.train = outcomes[sample.split]
 out.test = outcomes[!sample.split]
 
 
+############## GENERATE MODELS
+set.seed(123)
+xgb_caret = caret::train(x = train,
+                         y = out.train,
+                         method = "xgbTree",
+                         objective = "binary:logistic",
+                         trControl = trainControl(method = "cv",
+                                                  number = 5,
+                                                  repeats = 1,
+                                                  verboseIter = TRUE),
+                         tuneGrid = expand.grid(nrounds = c(100,200),
+                                                eta = c(0.01, 0.05),
+                                                max_depth = c(10,20,50),
+                                                colsample_bytree = c(0.5,1),
+                                                subsample  = c(0.5,1),
+                                                gamma = c(0,50),
+                                                min_child_weight = c(0,20)))
+
 bst = xgboost(data = train,
               label = out.train,
-              objective = "reg:squarederror",
+              objective = "binary:logistic",
               max.depth = 20,
               nrounds = 200,
               verbose = TRUE)
-predictions = predict(bst, test)
+# bst = xgboost(data = train,
+#               label = out.train,
+#               objective = "reg:squarederror",
+#               max.depth = 20,
+#               nrounds = 200,
+#               verbose = TRUE)
+predictions = predict(xgb_caret, test)
 
 
 df.examine = data.frame(actual.high = out.test,
                         predicted.high = predictions)
-df.examine$acceptable = 0
-df.examine$acceptable[abs(df.examine$predicted.high - df.examine$actual.high) < 0.2] = 1
+df.examine$prediction = 0
+df.examine$prediction[df.examine$predicted.high >= 0.5] = 1
 
-RMSE = (mean((df.examine$actual.high - df.examine$predicted.high)^2))^(1/2)
+length(which(df.examine$predicted.high == 1 & df.examine$actual.high == 1)) / length(which(df.examine$predicted.high == 1))
+
+# df.examine$acceptable = 0
+# df.examine$acceptable[abs(df.examine$predicted.high - df.examine$actual.high) < 0.2] = 1
+# 
+# RMSE = (mean((df.examine$actual.high - df.examine$predicted.high)^2))^(1/2)
