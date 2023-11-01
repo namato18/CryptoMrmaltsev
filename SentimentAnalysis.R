@@ -93,33 +93,49 @@ df.fg.for.merge = df.fear.greed %>%
 colnames(df.fg.for.merge) = c("rating", "just.date")
 
 
-# for(i in 2:length(ts.seq)){
-#   i=2
-#   full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:MATIC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
-#   # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=","20231008T0000","&time_to=","20231022T0000","&sort=EARLIEST&apikey=",api.key)
-# 
-#   test_get = httr::GET(full.url)
-# 
-#   test_get$status_code
-# 
-#   test = rawToChar(test_get$content)
-# 
-#   test = fromJSON(test, flatten = TRUE)
-#   df = test$feed
-# 
-#   if(i == 2){
-#     df.comb = df
-#   }else{
-#     df.comb = rbind(df.comb,df)
-#   }
-# 
-#   print(paste0(i, " of: ", length(ts.seq)))
-#   Sys.sleep(21)
-# }
+for(i in 2:length(ts.seq)){
+  full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
+  # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=","20231008T0000","&time_to=","20231022T0000","&sort=EARLIEST&apikey=",api.key)
 
-# saveRDS(df.comb, "df.comb.historical.btc.rds")
+  test_get = httr::GET(full.url)
 
+  test_get$status_code
+
+  test = rawToChar(test_get$content)
+
+  test = fromJSON(test, flatten = TRUE)
+  df = test$feed
+
+  if(i == 2){
+    df.comb = df
+  }else{
+    df.comb = rbind(df.comb,df)
+  }
+
+  print(paste0(i, " of: ", length(ts.seq)))
+  Sys.sleep(21)
+}
+df.comb$ticker.sentiment.individual = NA
+
+for(i in 1:nrow(df.comb)){
+  ind.for.sel = which(df.comb$ticker_sentiment[[i]]$ticker == "CRYPTO:BTC")
+  df.comb$ticker.sentiment.individual[i] = df.comb$ticker_sentiment[[i]]$ticker_sentiment_score[ind.for.sel]
+}
+
+
+saveRDS(df.comb, "df.comb.historical.btc.rds")
+tmpdir = tempdir()
+
+saveRDS(df.comb, paste0(tmpdir,"/df.comb.historical.btc.rds"))
+
+put_object(
+  file = paste0(tmpdir,"/df.comb.historical.btc.rds"),
+  object = "df.comb.historical.btc.rds",
+  bucket = "cryptomlbucket/AlphaVantageData"
+)
+# 
 # df.comb = readRDS("df.comb.historical.btc.rds")
+df.comb = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/AlphaVantageData", object = "df.comb.historical.matic.rds")
 
 ind = which(duplicated(df.comb$title) & duplicated(df.comb$overall_sentiment_score))
 
