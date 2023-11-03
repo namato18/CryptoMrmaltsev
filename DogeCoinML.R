@@ -2313,3 +2313,28 @@ CreateTimeseries <- function(region,topic,date.range,asset,timeframe,impact,sub.
 
 }
 
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+FearGreedToday <- function(){
+  url = paste0("https://production.dataviz.cnn.io/index/fearandgreed/graphdata/",Sys.Date())
+  
+  test_get = httr::GET(url)
+  
+  test_get$status_code
+  
+  test = rawToChar(test_get$content)
+  
+  test = fromJSON(test, flatten = TRUE)
+  
+  fear.greed.score = test$fear_and_greed$score
+  fear.greed.rating = test$fear_and_greed$rating
+  
+  to.return = list(fear.greed.score = fear.greed.score,
+                   fear.greed.rating = fear.greed.rating)
+  
+  return(to.return)
+}

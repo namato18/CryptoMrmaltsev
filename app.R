@@ -380,6 +380,10 @@ ui <- secure_app(
                   ),
                   box(title = "Prediction 4", status = "primary", solidHeader = TRUE, width=6,
                       dataTableOutput("multipleOutput4")
+                  ),
+                  box(title = "Sentiment Analysis", status = "primary", solidHeader = TRUE, width=12,
+                    valueBoxOutput("fearGreedRating"),
+                    valueBoxOutput("fearGreedScore")
                   )
                   
                 )
@@ -737,6 +741,9 @@ ui <- secure_app(
 # Define server logic
 server <- function(input, output, session) {
   
+  source("DogeCoinML.R")
+  
+  
   dateTime = reactiveVal(Sys.time())
   output$timer = renderText(paste0("Time reamining in this candle: ",dateTime()))
   
@@ -757,6 +764,10 @@ server <- function(input, output, session) {
   output$auth_output <- renderPrint({
     reactiveValuesToList(res_auth)$user
   })
+  
+  x = FearGreedToday()
+  output$fearGreedRating = renderValueBox(shinydashboard::valueBox(value = toupper(x$fear.greed.rating), subtitle = "Today's Fear/Greed Rating"))
+  output$fearGreedScore = renderValueBox(shinydashboard::valueBox(value = round(x$fear.greed.score,2), subtitle = "Today's Fear/Greed Score"))
   
   observe({
     invalidateLater(1000, session)
@@ -844,7 +855,6 @@ server <- function(input, output, session) {
   
   # .GlobalEnv = environment()
   # Read in functions
-  source("DogeCoinML.R")
   
   output$decimalsAllowed = renderText(paste0(coin_decimals$decimals[coin_decimals$symbol == input$selectCoinBinance], " decimal places allowed."))
   

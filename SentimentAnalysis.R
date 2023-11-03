@@ -12,7 +12,7 @@ library(CandleStickPattern)
 library(quantmod)
 library(caret)
 
-httr::set_config(config(ssl_verifypeer = FALSE, ssl_verifyhost = FALSE))
+# httr::set_config(config(ssl_verifypeer = FALSE, ssl_verifyhost = FALSE))
 
 
 ts.seq = seq(ymd("2023-01-01"), ymd(Sys.Date()), by="2 weeks")
@@ -36,10 +36,11 @@ fd.for.merge = funding.data %>%
   select(fundingRate, date)
 colnames(fd.for.merge) = c("funding.rate","date.8hr")
 fd.for.merge$date.8hr = as.character(fd.for.merge$date.8hr)
+fd.for.merge$date.8hr = as.POSIXlt(fd.for.merge$date.8hr, tz = 'UTC')
 #
 
-x = riingo_crypto_prices("BTCUSDT", start_date = Sys.Date() - lubridate::dmonths(5), end_date = Sys.Date(), resample_frequency = "1hour")
-x2 = riingo_crypto_prices("BTCUSDT", start_date = Sys.Date() - lubridate::dmonths(10), end_date = Sys.Date() - lubridate::dmonths(5), resample_frequency = "1hour")
+x = riingo_crypto_prices("ETHUSDT", start_date = Sys.Date() - lubridate::dmonths(5), end_date = Sys.Date(), resample_frequency = "1day")
+x2 = riingo_crypto_prices("ETHUSDT", start_date = Sys.Date() - lubridate::dmonths(10), end_date = Sys.Date() - lubridate::dmonths(5), resample_frequency = "1day")
 
 x = x[,c(1,4:9)]
 x2 = x2[,c(1,4:9)]
@@ -64,7 +65,7 @@ x$downTrend = as.numeric(downTrend[,1])
 x$upTrend = Lag(x$upTrend, 1)
 x$downTrend = Lag(x$downTrend, 1)
 #
-x$date.8hr = as.character(floor_date(x$date, "8hour"))
+x$date.8hr = floor_date(x$date, "8hour")
 
 start.time = format(x$date[1] - lubridate::days(21), format = "%Y%m%dT%H%M")
 end.time = format(x$date[1], format = "%Y%m%dT%H%M")
@@ -93,49 +94,49 @@ df.fg.for.merge = df.fear.greed %>%
 colnames(df.fg.for.merge) = c("rating", "just.date")
 
 
-for(i in 2:length(ts.seq)){
-  full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
-  # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=","20231008T0000","&time_to=","20231022T0000","&sort=EARLIEST&apikey=",api.key)
-
-  test_get = httr::GET(full.url)
-
-  test_get$status_code
-
-  test = rawToChar(test_get$content)
-
-  test = fromJSON(test, flatten = TRUE)
-  df = test$feed
-
-  if(i == 2){
-    df.comb = df
-  }else{
-    df.comb = rbind(df.comb,df)
-  }
-
-  print(paste0(i, " of: ", length(ts.seq)))
-  Sys.sleep(21)
-}
-df.comb$ticker.sentiment.individual = NA
-
-for(i in 1:nrow(df.comb)){
-  ind.for.sel = which(df.comb$ticker_sentiment[[i]]$ticker == "CRYPTO:BTC")
-  df.comb$ticker.sentiment.individual[i] = df.comb$ticker_sentiment[[i]]$ticker_sentiment_score[ind.for.sel]
-}
-
-
-saveRDS(df.comb, "df.comb.historical.btc.rds")
-tmpdir = tempdir()
-
-saveRDS(df.comb, paste0(tmpdir,"/df.comb.historical.btc.rds"))
-
-put_object(
-  file = paste0(tmpdir,"/df.comb.historical.btc.rds"),
-  object = "df.comb.historical.btc.rds",
-  bucket = "cryptomlbucket/AlphaVantageData"
-)
+# for(i in 2:length(ts.seq)){
+#   full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
+#   # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=","20231008T0000","&time_to=","20231022T0000","&sort=EARLIEST&apikey=",api.key)
 # 
-# df.comb = readRDS("df.comb.historical.btc.rds")
-df.comb = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/AlphaVantageData", object = "df.comb.historical.matic.rds")
+#   test_get = httr::GET(full.url)
+# 
+#   test_get$status_code
+# 
+#   test = rawToChar(test_get$content)
+# 
+#   test = fromJSON(test, flatten = TRUE)
+#   df = test$feed
+# 
+#   if(i == 2){
+#     df.comb = df
+#   }else{
+#     df.comb = rbind(df.comb,df)
+#   }
+# 
+#   print(paste0(i, " of: ", length(ts.seq)))
+#   Sys.sleep(21)
+# }
+# df.comb$ticker.sentiment.individual = NA
+# 
+# for(i in 1:nrow(df.comb)){
+#   ind.for.sel = which(df.comb$ticker_sentiment[[i]]$ticker == "CRYPTO:INJ")
+#   df.comb$ticker.sentiment.individual[i] = df.comb$ticker_sentiment[[i]]$ticker_sentiment_score[ind.for.sel]
+# }
+# 
+# 
+# saveRDS(df.comb, "df.comb.historical.inj.rds")
+# tmpdir = tempdir()
+# 
+# saveRDS(df.comb, paste0(tmpdir,"/df.comb.historical.inj.rds"))
+# 
+# aws.s3::put_object(
+#   file = paste0(tmpdir,"/df.comb.historical.inj.rds"),
+#   object = "df.comb.historical.inj.rds",
+#   bucket = "cryptomlbucket/AlphaVantageData"
+# )
+# 
+# df.comb = readRDS("df.comb.historical.link.rds")
+df.comb = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/AlphaVantageData", object = "df.comb.historical.btc.rds")
 
 ind = which(duplicated(df.comb$title) & duplicated(df.comb$overall_sentiment_score))
 
@@ -214,7 +215,7 @@ for(i in 1:nrow(x)){
   # x$fear.greed[i] = fear.greed.val
   # x$vix.open[i] = vix.val
   
-  print(i)
+  # print(i)
 }
 x[is.na(x)] = 0
 
@@ -238,16 +239,18 @@ x$OO.24 = (x$prev.open.24 - x$open) / x$open * 100
 
 x = na.omit(x)
 
+# df = x %>%
+#   select(upTrend, downTrend, rating, vix.open, funding.rate, news.1hr, news.8hr, news.24hr,
+#          VC.1, VC.8, VC.24, OO.1, OO.8, OO.24)
 df = x %>%
-  select(upTrend, downTrend, rating, vix.open, funding.rate, news.1hr, news.8hr, news.24hr,
-         VC.1, VC.8, VC.24, OO.1, OO.8, OO.24)
+  select(upTrend, downTrend, rating, vix.open, funding.rate, news.1hr, news.8hr, news.24hr)
 df[] <- lapply(df, as.numeric)
 
 
 # SET OUTCOMES
-outcomes = x$OH
+# outcomes = x$OH
 outcomes = rep(0, nrow(df))
-outcomes[x$OH >= 0.5] = 1
+outcomes[x$OH >= 1] = 1
 #
 
 
@@ -266,35 +269,44 @@ out.test = outcomes[!sample.split]
 
 ############## GENERATE MODELS
 set.seed(123)
-xgb_caret = caret::train(x = train,
-                         y = out.train,
-                         method = "xgbTree",
-                         objective = "binary:logistic",
-                         trControl = trainControl(method = "cv",
-                                                  number = 5,
-                                                  repeats = 1,
-                                                  verboseIter = TRUE),
-                         tuneGrid = expand.grid(nrounds = c(100,200),
-                                                eta = c(0.01, 0.05),
-                                                max_depth = c(10,20,50),
-                                                colsample_bytree = c(0.5,1),
-                                                subsample  = c(0.5,1),
-                                                gamma = c(0,50),
-                                                min_child_weight = c(0,20)))
+# xgb_caret = caret::train(x = train,
+#                          y = out.train,
+#                          method = "xgbTree",
+#                          objective = "binary:logistic",
+#                          trControl = trainControl(method = "cv",
+#                                                   number = 5,
+#                                                   repeats = 1,
+#                                                   verboseIter = TRUE),
+#                          tuneGrid = expand.grid(nrounds = c(100,200),
+#                                                 eta = c(0.01, 0.05),
+#                                                 max_depth = c(10,20,50),
+#                                                 colsample_bytree = c(0.5,1),
+#                                                 subsample  = c(0.5,1),
+#                                                 gamma = c(0,50),
+#                                                 min_child_weight = c(0,20)))
 
+# bst = xgboost(data = train,
+#               label = out.train,
+#               objective = "binary:logistic",
+#               max.depth = 50,
+#               nrounds = 200,
+#               eta = 0.01,
+#               gamma = 0,
+#               colsample_bytree = 1,
+#               min_child_weight = 20,
+#               subsample = 0.5,
+#               verbose = TRUE)
 bst = xgboost(data = train,
               label = out.train,
               objective = "binary:logistic",
-              max.depth = 20,
+              max.depth = 50,
               nrounds = 200,
+              eta = 0.01,
+              gamma = 0,
+              colsample_bytree = 1,
+              subsample = 0.5,
               verbose = TRUE)
-# bst = xgboost(data = train,
-#               label = out.train,
-#               objective = "reg:squarederror",
-#               max.depth = 20,
-#               nrounds = 200,
-#               verbose = TRUE)
-predictions = predict(xgb_caret, test)
+predictions = predict(bst, test)
 
 
 df.examine = data.frame(actual.high = out.test,
@@ -302,7 +314,8 @@ df.examine = data.frame(actual.high = out.test,
 df.examine$prediction = 0
 df.examine$prediction[df.examine$predicted.high >= 0.5] = 1
 
-length(which(df.examine$predicted.high == 1 & df.examine$actual.high == 1)) / length(which(df.examine$predicted.high == 1))
+length(which(df.examine$prediction == 1 & df.examine$actual.high == 1)) / length(which(df.examine$prediction == 1))
+length(which(df.examine$prediction == 1))
 
 # df.examine$acceptable = 0
 # df.examine$acceptable[abs(df.examine$predicted.high - df.examine$actual.high) < 0.2] = 1
