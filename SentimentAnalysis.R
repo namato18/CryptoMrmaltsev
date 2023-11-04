@@ -11,6 +11,11 @@ library(httr)
 library(CandleStickPattern)
 library(quantmod)
 library(caret)
+library(quantmod)
+
+
+str1 = readRDS('tickers/str1.rds')
+
 
 # httr::set_config(config(ssl_verifypeer = FALSE, ssl_verifyhost = FALSE))
 
@@ -39,8 +44,49 @@ fd.for.merge$date.8hr = as.character(fd.for.merge$date.8hr)
 fd.for.merge$date.8hr = as.POSIXlt(fd.for.merge$date.8hr, tz = 'UTC')
 #
 
-x = riingo_crypto_prices("ETHUSDT", start_date = Sys.Date() - lubridate::dmonths(5), end_date = Sys.Date(), resample_frequency = "1day")
-x2 = riingo_crypto_prices("ETHUSDT", start_date = Sys.Date() - lubridate::dmonths(10), end_date = Sys.Date() - lubridate::dmonths(5), resample_frequency = "1day")
+# webscrape fear
+
+url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata/2021-07-05"
+
+test_get = httr::GET(url)
+
+test_get$status_code
+
+test = rawToChar(test_get$content)
+
+test = fromJSON(test, flatten = TRUE)
+
+test$fear_and_greed_historical
+
+df.fear.greed = test$fear_and_greed_historical$data
+
+df.fear.greed$date = as.POSIXct(df.fear.greed$x/1000, origin = "1970-01-01", tz = "UTC")
+df.fg.for.merge = df.fear.greed %>%
+  select(y, date)
+colnames(df.fg.for.merge) = c("rating", "just.date")
+
+# Add VIX index
+df.comb = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/AlphaVantageData", object = "df.comb.historical.blockchain.rds")
+
+ind = which(duplicated(df.comb$title) & duplicated(df.comb$overall_sentiment_score))
+
+df.comb.rem = df.comb[-ind,]
+df.comb.rem$time = strptime(df.comb.rem$time_published, format = "%Y%m%dT%H%M%S")
+
+
+df.vix = getSymbols("^VIX", auto.assign = FALSE)
+colnames(df.vix) = c("open","high","low","close","volume","adjusted")
+df.vix = as.data.frame(df.vix)
+df.vix$time = as.POSIXct(row.names(df.vix))
+
+df.vix.for.merge = df.vix %>%
+  select(open, time)
+colnames(df.vix.for.merge) = c("vix.open","just.date")
+
+for(i in 1:1){
+
+x = riingo_crypto_prices(str1[i], start_date = Sys.Date() - lubridate::dmonths(14), end_date = Sys.Date(), resample_frequency = "1day")
+x2 = riingo_crypto_prices(str1[i], start_date = Sys.Date() - lubridate::dmonths(28), end_date = Sys.Date() - lubridate::dmonths(14), resample_frequency = "1day")
 
 x = x[,c(1,4:9)]
 x2 = x2[,c(1,4:9)]
@@ -72,30 +118,13 @@ end.time = format(x$date[1], format = "%Y%m%dT%H%M")
 
 
 
-# webscrape fear
 
-url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata/2022-10-25"
-
-test_get = httr::GET(url)
-
-test_get$status_code
-
-test = rawToChar(test_get$content)
-
-test = fromJSON(test, flatten = TRUE)
-
-test$fear_and_greed_historical
-
-df.fear.greed = test$fear_and_greed_historical$data
-
-df.fear.greed$date = as.POSIXct(df.fear.greed$x/1000, origin = "1970-01-01", tz = "UTC")
-df.fg.for.merge = df.fear.greed %>%
-  select(y, date)
-colnames(df.fg.for.merge) = c("rating", "just.date")
 
 
 # for(i in 2:length(ts.seq)){
-#   full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
+#   # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
+#   full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=blockchain&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
+#   
 #   # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=","20231008T0000","&time_to=","20231022T0000","&sort=EARLIEST&apikey=",api.key)
 # 
 #   test_get = httr::GET(full.url)
@@ -127,32 +156,16 @@ colnames(df.fg.for.merge) = c("rating", "just.date")
 # saveRDS(df.comb, "df.comb.historical.inj.rds")
 # tmpdir = tempdir()
 # 
-# saveRDS(df.comb, paste0(tmpdir,"/df.comb.historical.inj.rds"))
+# saveRDS(df.comb, paste0(tmpdir,"/df.comb.historical.blockchain.rds"))
 # 
 # aws.s3::put_object(
-#   file = paste0(tmpdir,"/df.comb.historical.inj.rds"),
-#   object = "df.comb.historical.inj.rds",
+#   file = paste0(tmpdir,"/df.comb.historical.blockchain.rds"),
+#   object = "df.comb.historical.blockchain.rds",
 #   bucket = "cryptomlbucket/AlphaVantageData"
 # )
 # 
 # df.comb = readRDS("df.comb.historical.link.rds")
-df.comb = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/AlphaVantageData", object = "df.comb.historical.btc.rds")
 
-ind = which(duplicated(df.comb$title) & duplicated(df.comb$overall_sentiment_score))
-
-df.comb.rem = df.comb[-ind,]
-df.comb.rem$time = strptime(df.comb.rem$time_published, format = "%Y%m%dT%H%M%S")
-
-library(quantmod)
-
-df.vix = getSymbols("^VIX", auto.assign = FALSE)
-colnames(df.vix) = c("open","high","low","close","volume","adjusted")
-df.vix = as.data.frame(df.vix)
-df.vix$time = as.POSIXct(row.names(df.vix))
-
-df.vix.for.merge = df.vix %>%
-  select(open, time)
-colnames(df.vix.for.merge) = c("vix.open","just.date")
 
 
 x$just.date = as.Date(x$date)
@@ -161,26 +174,26 @@ x = left_join(x, df.fg.for.merge, by = "just.date")
 x = left_join(x, df.vix.for.merge, by = "just.date")
 x = left_join(x, fd.for.merge, by = "date.8hr")
 
-if(is.na(x$rating[1])){
-  time.dif = x$date[1] - df.fg.for.merge$just.date
-  time.dif = time.dif[time.dif > 0]
-  time.dif = time.dif[length(time.dif)]
-  
-  x$rating[1] = df.fg.for.merge$rating[x$date[1] - df.fg.for.merge$just.date == time.dif]
-}
+# if(is.na(x$rating[1])){
+#   time.dif = x$date[1] - df.fg.for.merge$just.date
+#   time.dif = time.dif[time.dif > 0]
+#   time.dif = time.dif[length(time.dif)]
+#   
+#   x$rating[1] = df.fg.for.merge$rating[x$date[1] - df.fg.for.merge$just.date == time.dif]
+# }
 
-x$rating = na.locf(x$rating)
+# x$rating = na.locf(x$rating)
 
 
 x = na.omit(x)
 x$news.1hr = NA
 x$news.8hr = NA
 x$news.24hr = NA
-for(i in 1:nrow(x)){
+for(k in 1:nrow(x)){
 
-  x$news.1hr[i] = mean(df.comb.rem[which(df.comb.rem$time > x$date[i] - lubridate::hours(1) & df.comb.rem$time <= x$date[i]),]$overall_sentiment_score)
-  x$news.8hr[i] = mean(df.comb.rem[which(df.comb.rem$time > x$date[i] - lubridate::hours(8) & df.comb.rem$time <= x$date[i]),]$overall_sentiment_score)
-  x$news.24hr[i] = mean(df.comb.rem[which(df.comb.rem$time > x$date[i] - lubridate::hours(24) & df.comb.rem$time <= x$date[i]),]$overall_sentiment_score)
+  x$news.1hr[k] = mean(df.comb.rem[which(df.comb.rem$time > x$date[k] - lubridate::hours(1) & df.comb.rem$time <= x$date[k]),]$overall_sentiment_score)
+  x$news.8hr[k] = mean(df.comb.rem[which(df.comb.rem$time > x$date[k] - lubridate::hours(8) & df.comb.rem$time <= x$date[k]),]$overall_sentiment_score)
+  x$news.24hr[k] = mean(df.comb.rem[which(df.comb.rem$time > x$date[k] - lubridate::hours(24) & df.comb.rem$time <= x$date[k]),]$overall_sentiment_score)
   
 
 
@@ -249,6 +262,8 @@ df[] <- lapply(df, as.numeric)
 
 # SET OUTCOMES
 # outcomes = x$OH
+for(j in seq(from = 0.2, to = 3, by = 0.2)){
+  
 outcomes = rep(0, nrow(df))
 outcomes[x$OH >= 1] = 1
 #
@@ -306,16 +321,31 @@ bst = xgboost(data = train,
               colsample_bytree = 1,
               subsample = 0.5,
               verbose = TRUE)
-predictions = predict(bst, test)
 
+tmpdir = tempdir()
 
-df.examine = data.frame(actual.high = out.test,
-                        predicted.high = predictions)
-df.examine$prediction = 0
-df.examine$prediction[df.examine$predicted.high >= 0.5] = 1
+saveRDS(bst, paste0(tmpdir,"bst_",str1[i],"_blockchain_",j,".rds"))
 
-length(which(df.examine$prediction == 1 & df.examine$actual.high == 1)) / length(which(df.examine$prediction == 1))
-length(which(df.examine$prediction == 1))
+aws.s3::put_object(
+  file = paste0(tmpdir,"bst_",str1[i],"_blockchain_",j,".rds"),
+  object = paste0("bst_",str1[i],"_blockchain_",j,".rds"),
+  bucket = "cryptomlbucket/AlphaVantageData/blockchain_models"
+)
+
+}
+# predictions = predict(bst, test)
+# 
+# 
+# df.examine = data.frame(actual.high = out.test,
+#                         predicted.prob = predictions)
+# df.examine$prediction = 0
+# df.examine$prediction[df.examine$predicted.prob >= 0.5] = 1
+# 
+# precision = length(which(df.examine$prediction == 1 & df.examine$actual.high == 1)) / length(which(df.examine$prediction == 1))
+# recall = length(which(df.examine$prediction == 1 & df.examine$actual.high == 1)) / length(which(df.examine$actual.high == 1))
+# length(which(df.examine$prediction == 1))
+
+}
 
 # df.examine$acceptable = 0
 # df.examine$acceptable[abs(df.examine$predicted.high - df.examine$actual.high) < 0.2] = 1
