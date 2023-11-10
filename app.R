@@ -19,6 +19,23 @@ library(jsonlite)
 library(shinythemes)
 library(padr)
 
+Color.DT = function(df){
+  
+  if(is.null(df)){
+    return(NULL)
+  }else{
+    dt.colored = datatable(df,
+                           rownames = FALSE,
+                           extensions = c("Buttons","FixedHeader"),
+                           style = "bootstrap",
+                           options = list(paging = FALSE,fixedHeader = TRUE, searching = FALSE, dom = 'Bfrtip', buttons = c('csv'))) %>%
+      formatStyle("Signal",
+                  backgroundColor = styleEqual(c("DON'T BUY SIGNAL", "BUY SIGNAL"), c('darkred','lightgreen')))
+    
+    return(dt.colored)
+  }
+}
+
 Sys.setenv(
   "AWS_ACCESS_KEY_ID" = "AKIAZI3NHYNJ2L5YMIHV",
   "AWS_SECRET_ACCESS_KEY" = "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",
@@ -155,6 +172,7 @@ ui <- secure_app(
                 fluidPage(
                   shinyjs::useShinyjs(),
                   tags$head(tags$style('body {color:white;}')),
+                  tags$head(tags$style('table {color:white;}')),
                   tags$head(tags$link(rel="shortcut icon", href="favicon.png")),
                   add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "bottom-right"),
                   # setBackgroundColor(color="black",shinydashboard = TRUE),
@@ -208,6 +226,14 @@ ui <- secure_app(
                              paste0("Ideally, we'd like there to be a near 0 probability or a near 1 probability for all predictions. ",
                                     "Values that are more in the middle can give us an unclear prediction."),
                              plotOutput("modelPlot")
+                         ),
+                         box(title = "Sentiment Backtest Metrics", width = NULL, status = "primary", solidHeader = TRUE,
+                             valueBoxOutput(outputId = "precisionBoxSentiment", width = 12),
+                             # valueBoxOutput(outputId = "recallBox", width = 6),
+                             # valueBoxOutput(outputId = "f1Box", width = 4),
+                             valueBoxOutput(outputId = "totalDataSentiment", width = 6),
+                             valueBoxOutput(outputId = "predictedHitsSentiment", width = 6)
+                             
                          )
                          # box(title = "Metrics", width = NULL, status = "primary", solidHeader = TRUE,
                          #   # infoBoxOutput("OverallAccuracy", width = 6),
@@ -269,6 +295,7 @@ ui <- secure_app(
                              br(),
                              dataTableOutput("table1")
                          )
+
                          
                   )
                   
@@ -382,8 +409,39 @@ ui <- secure_app(
                       dataTableOutput("multipleOutput4")
                   ),
                   box(title = "Sentiment Analysis", status = "primary", solidHeader = TRUE, width=12,
-                    valueBoxOutput("fearGreedRating"),
-                    valueBoxOutput("fearGreedScore")
+                      strong("NOTE THAT SENTIMENT ANALYSIS ONLY DISPLAYS PREDICTIONS FOR THE 1 DAY TIMEFRAME"),
+                      br(),
+                      br(),
+                      column(width = 6,
+                             valueBoxOutput("fearGreedRating", width = 6),
+                             valueBoxOutput("OneHrSent", width = 6)
+                             ),
+                      column(width = 6,
+                             valueBoxOutput("EightHrSent", width = 6),
+                             valueBoxOutput("TwenFourHrSent", width = 6)
+                             ),
+                      br(),
+                      br(),
+                      
+                      column(width = 6,
+                             box(title = "Sentiment 1", status = "primary", solidHeader = TRUE, width=12,
+                                 dataTableOutput("sentimentOutput1")
+                             ),
+                             box(title = "Sentiment 3", status = "primary", solidHeader = TRUE, width=12,
+                                 dataTableOutput("sentimentOutput3")
+                             )
+                      ),
+                      column(width = 6,
+                             box(title = "Sentiment 2", status = "primary", solidHeader = TRUE, width=12,
+                                 dataTableOutput("sentimentOutput2")
+                             ),
+                             box(title = "Sentiment 4", status = "primary", solidHeader = TRUE, width=12,
+                                 dataTableOutput("sentimentOutput4")
+                             )
+                      )
+                      
+                      
+                      
                   )
                   
                 )
@@ -765,9 +823,7 @@ server <- function(input, output, session) {
     reactiveValuesToList(res_auth)$user
   })
   
-  x = FearGreedToday()
-  output$fearGreedRating = renderValueBox(shinydashboard::valueBox(value = toupper(x$fear.greed.rating), subtitle = "Today's Fear/Greed Rating"))
-  output$fearGreedScore = renderValueBox(shinydashboard::valueBox(value = round(x$fear.greed.score,2), subtitle = "Today's Fear/Greed Score"))
+  
   
   observe({
     invalidateLater(1000, session)
@@ -894,38 +950,27 @@ server <- function(input, output, session) {
       
     }else{
       createModel(input$selectType,input$slider1, input$slider2, input$select, input$timeframe, input$slider1)
+      senti = BacktestSentiment(input$selectType,input$slider1, input$slider2, input$select, input$timeframe)
     }
-    # output$OverallAccuracy = renderInfoBox({
-    #   infoBox("Overall Accuracy",paste0(round(overall.accuracy, digits = 2), "%"), icon = icon('check'))
-    #   })
+    
     output$precisionBox = renderValueBox({
       shinydashboard::valueBox(value = paste0(precision,"%"), subtitle = "Precision Score", icon = icon("bullseye"))
     })
-    # output$recallBox = renderValueBox({
-    #   shinydashboard::valueBox(value = paste0(recall,"%"), subtitle = "Recall Score", icon = icon("circle-xmark"))
-    # })
-    # output$f1Box = renderValueBox({
-    #   shinydashboard::valueBox(value = f1, subtitle = "F1 Score", icon = icon("check"))
-    # })
     output$totalData = renderValueBox({
       shinydashboard::valueBox(value = nrow(compare), subtitle = "Number of Candles Backtested", icon = icon("vials"))
     })
     output$predictedHits = renderValueBox({
       shinydashboard::valueBox(value = nrow(compare[compare$decision == 1,]), subtitle = "Predicted Buy Signals", icon = icon("vials"))
     })
-    # output$Buy = renderInfoBox({infoBox("Profitable Trades", paste0(round(yes.buy.correct.perc, digits = 2), "%"), icon = icon("thumbs-up"))
-    # })
-    # output$SumPercentage = renderInfoBox({
-    #   infoBox("Sum Percentage", paste0(round(sum.percentage, digits = 2), "%"),icon = icon("money-bill-trend-up"))
-    #   })
-    # # output$DontBuy = renderInfoBox({infoBox("'Don't Buy' Correct", paste0(round(no.buy.correct.perc, digits = 2),"%"),icon = icon("thumbs-down"))
-    # #   })
-    # output$Predictions = renderInfoBox({infoBox("Number of Predictions", paste0(nrow(compare)))
-    # })
-    # output$Hits = renderInfoBox({infoBox("Number of BUYS", paste0(nrow(compare[compare$Signal == 'DID BUY',])))
-    # })
-    # 
-    # colnames(compare) = c('Actual', 'Actual High', 'Actual Low','Actual Close', 'Confidence Score', 'Signal', 'profit')
+    output$precisionBoxSentiment = renderValueBox({
+      shinydashboard::valueBox(value = paste0(senti$precision,"%"), subtitle = "Precision Score", icon = icon("bullseye"))
+    })
+    output$totalDataSentiment = renderValueBox({
+      shinydashboard::valueBox(value = nrow(senti$df.examine), subtitle = "Number of Candles Backtested", icon = icon("vials"))
+    })
+    output$predictedHitsSentiment = renderValueBox({
+      shinydashboard::valueBox(value = nrow(senti$df.examine[senti$df.examine$prediction == 1,]), subtitle = "Predicted Buy Signals", icon = icon("vials"))
+    })
     
     
     
@@ -978,10 +1023,23 @@ server <- function(input, output, session) {
     updateSelectInput(session = session, inputId = 'candlestickInput', choices = x, selected = head(x,1))
     
     if(input$selectTypeMult == "Crypto" | input$selectTypeMult == "Stocks"){
-      predict.tomorrow.multiple(input$selectTypeMult,input$checkGroup, input$timeframePredict, input$slider3, .GlobalEnv)
+      predict.tomorrow.multiple(input$selectTypeMult,input$checkGroup, input$timeframePredict, input$slider3)
     }else{
       predict.next.bh.bl.tar(input$checkGroup, input$timeframePredict, input$slider3)
     }
+    
+    returned.sentiment = PerformSentimentAnalysis(input$checkGroup, input$slider3, input$selectTypeMult)
+    
+    x = FearGreedToday()
+    output$fearGreedRating = renderValueBox(shinydashboard::valueBox(value = toupper(x$fear.greed.rating), subtitle = "Today's Fear/Greed Rating"))
+    # output$fearGreedScore = renderValueBox(shinydashboard::valueBox(value = round(x$fear.greed.score,2), subtitle = "Today's Fear/Greed Score"))
+    output$OneHrSent = renderValueBox(shinydashboard::valueBox(value = returned.sentiment$one.hr.sentiment, subtitle = "1 Hour Sentiment"))
+    output$EightHrSent = renderValueBox(shinydashboard::valueBox(value = returned.sentiment$eight.hr.sentiment, subtitle = "8 Hour Sentiment"))
+    output$TwenFourHrSent = renderValueBox(shinydashboard::valueBox(value = returned.sentiment$twenfour.hr.sentiment, subtitle = "24 Hour Sentiment"))
+    
+    
+    # dt.returned.sentiment = Color.DT(returned.sentiment$df.to.return)
+    # output$sentimentTable = renderDataTable(dt.returned.sentiment)
     
     
     dt.colored1 = Color.DT(predictions.df.indi1)
@@ -989,7 +1047,22 @@ server <- function(input, output, session) {
     dt.colored3 = Color.DT(predictions.df.indi3)
     dt.colored4 = Color.DT(predictions.df.indi4)
     
+    dt.colored11 = Color.DT(predictions.df.indi11)
+    dt.colored22 = Color.DT(predictions.df.indi22)
+    dt.colored33 = Color.DT(predictions.df.indi33)
+    dt.colored44 = Color.DT(predictions.df.indi44)
+    
+    
+    
     output$multipleOutput1 = renderDataTable(dt.colored1)
+    # output$multipleOutput1 = renderDataTable(datatable(predictions.df.indi1,
+    #                                                     rownames = FALSE,
+    #                                                     extensions = c("Buttons","FixedHeader"),
+    #                                                     style = "bootstrap",
+    #                                                     options = list(paging = FALSE,fixedHeader = TRUE, searching = FALSE, dom = 'Bfrtip', buttons = c('csv'))) %>%
+    #   formatStyle("Signal",
+    #               backgroundColor = styleEqual(c("DON'T BUY SIGNAL", "BUY SIGNAL"), c('darkred','lightgreen')))
+    # )
     
     
     if(is.null(dt.colored2)){
@@ -1011,6 +1084,28 @@ server <- function(input, output, session) {
       output$multipleOutput4 = renderDataTable(dt.colored4)
     }
     
+    output$sentimentOutput1 = renderDataTable(dt.colored11)
+    
+    
+    
+    if(is.null(dt.colored22)){
+      shinyjs::hide("sentimentOutput2")
+    }else{
+      shinyjs::show("sentimentOutput2")
+      output$sentimentOutput2 = renderDataTable(dt.colored22)
+    }
+    if(is.null(dt.colored33)){
+      shinyjs::hide("sentimentOutput3")
+    }else{
+      shinyjs::show("sentimentOutput3")
+      output$sentimentOutput3 = renderDataTable(dt.colored33)
+    }
+    if(is.null(dt.colored44)){
+      shinyjs::hide("sentimentOutput4")
+    }else{
+      shinyjs::show("sentimentOutput4")
+      output$sentimentOutput4 = renderDataTable(dt.colored44)
+    }
     
     output$binancePredictionTable = renderDataTable(dt.colored)
     output$candlestickPlot = renderPlotly(createCandlePlot(input$candlestickInput))

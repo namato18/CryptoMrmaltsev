@@ -12,7 +12,9 @@ library(CandleStickPattern)
 library(quantmod)
 library(caret)
 library(quantmod)
+library(purrr)
 
+possibly_riingo_crypto_prices = possibly(riingo_crypto_prices, otherwise = "ERROR")
 
 str1 = readRDS('tickers/str1.rds')
 
@@ -83,15 +85,30 @@ df.vix.for.merge = df.vix %>%
   select(open, time)
 colnames(df.vix.for.merge) = c("vix.open","just.date")
 
-for(i in 1:1){
+bad.coins = c()
 
-x = riingo_crypto_prices(str1[i], start_date = Sys.Date() - lubridate::dmonths(14), end_date = Sys.Date(), resample_frequency = "1day")
-x2 = riingo_crypto_prices(str1[i], start_date = Sys.Date() - lubridate::dmonths(28), end_date = Sys.Date() - lubridate::dmonths(14), resample_frequency = "1day")
+for(i in 191:length(str1)){
+  
+  
+x = possibly_riingo_crypto_prices(str1[i], start_date = Sys.Date() - lubridate::dmonths(14), end_date = Sys.Date(), resample_frequency = "1day")
+x2 = possibly_riingo_crypto_prices(str1[i], start_date = Sys.Date() - lubridate::dmonths(28), end_date = Sys.Date() - lubridate::dmonths(14), resample_frequency = "1day")
 
-x = x[,c(1,4:9)]
-x2 = x2[,c(1,4:9)]
 
-x = rbind(x2, x)
+if(length(x) == 1){
+  bad.coins = c(bad.coins,i)
+  next()
+}
+
+if(length(x2) == 1){
+  x = x[,c(1,4:9)]
+}else{
+  x = x[,c(1,4:9)]
+  x2 = x2[,c(1,4:9)]
+  
+  x = rbind(x2, x)
+}
+
+
 
 ind = which(duplicated(x$date))
 
@@ -123,18 +140,18 @@ end.time = format(x$date[1], format = "%Y%m%dT%H%M")
 
 # for(i in 2:length(ts.seq)){
 #   # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
-#   full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=blockchain&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
-#   
-#   # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=","20231008T0000","&time_to=","20231022T0000","&sort=EARLIEST&apikey=",api.key)
-# 
-#   test_get = httr::GET(full.url)
-# 
-#   test_get$status_code
-# 
-#   test = rawToChar(test_get$content)
-# 
-#   test = fromJSON(test, flatten = TRUE)
-#   df = test$feed
+  # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=blockchain&limit=1000&time_from=",ts.seq[i-1],"&time_to=",ts.seq[i],"&sort=EARLIEST&apikey=",api.key)
+  # 
+  # # full.url = paste0("https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=CRYPTO:BTC&limit=1000&time_from=","20231008T0000","&time_to=","20231022T0000","&sort=EARLIEST&apikey=",api.key)
+  # 
+  # test_get = httr::GET(full.url)
+  # 
+  # test_get$status_code
+  # 
+  # test = rawToChar(test_get$content)
+  # 
+  # test = fromJSON(test, flatten = TRUE)
+  # df = test$feed
 # 
 #   if(i == 2){
 #     df.comb = df
@@ -186,6 +203,12 @@ x = left_join(x, fd.for.merge, by = "date.8hr")
 
 
 x = na.omit(x)
+
+if(nrow(x) < 25){
+  bad.coins = c(bad.coins,i)
+  next()
+}
+
 x$news.1hr = NA
 x$news.8hr = NA
 x$news.24hr = NA
@@ -265,7 +288,7 @@ df[] <- lapply(df, as.numeric)
 for(j in seq(from = 0.2, to = 3, by = 0.2)){
   
 outcomes = rep(0, nrow(df))
-outcomes[x$OH >= 1] = 1
+outcomes[x$OH >= j] = 1
 #
 
 
@@ -320,11 +343,21 @@ bst = xgboost(data = train,
               gamma = 0,
               colsample_bytree = 1,
               subsample = 0.5,
-              verbose = TRUE)
+              verbose = FALSE)
+
+predictions = predict(bst, test)
+
+
+df.examine = data.frame(actual.high = out.test,
+                        predicted.prob = predictions)
+df.examine$prediction = 0
+df.examine$prediction[df.examine$predicted.prob >= 0.5] = 1
 
 tmpdir = tempdir()
 
 saveRDS(bst, paste0(tmpdir,"bst_",str1[i],"_blockchain_",j,".rds"))
+saveRDS(df.examine, paste0(tmpdir,"df.examine_",str1[i],"_blockchain_",j,".rds"))
+
 
 aws.s3::put_object(
   file = paste0(tmpdir,"bst_",str1[i],"_blockchain_",j,".rds"),
@@ -332,18 +365,20 @@ aws.s3::put_object(
   bucket = "cryptomlbucket/AlphaVantageData/blockchain_models"
 )
 
+aws.s3::put_object(
+  file = paste0(tmpdir,"df.examine_",str1[i],"_blockchain_",j,".rds"),
+  object = paste0("df.examine_",str1[i],"_blockchain_",j,".rds"),
+  bucket = "cryptomlbucket/AlphaVantageData/blockchain_models"
+)
+
 }
-# predictions = predict(bst, test)
-# 
-# 
-# df.examine = data.frame(actual.high = out.test,
-#                         predicted.prob = predictions)
-# df.examine$prediction = 0
-# df.examine$prediction[df.examine$predicted.prob >= 0.5] = 1
+
 # 
 # precision = length(which(df.examine$prediction == 1 & df.examine$actual.high == 1)) / length(which(df.examine$prediction == 1))
 # recall = length(which(df.examine$prediction == 1 & df.examine$actual.high == 1)) / length(which(df.examine$actual.high == 1))
 # length(which(df.examine$prediction == 1))
+
+print(paste0(i," out of: ",length(str1)))
 
 }
 
