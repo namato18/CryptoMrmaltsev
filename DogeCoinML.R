@@ -2596,4 +2596,261 @@ BacktestSentiment <- function(Type,TargetIncreasePercent, SuccessThreshold, Symb
     return(to.return)
   }
 }
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidence.score){
+  
+  
+  # user = "nick"
+  # timeframe = 7
+  # fee = 0
+  # confidence.score = 0.74
+  # 
+  # x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
+  # 
+  # x.sel = x[grepl(pattern = paste0("Automation/",user,"/"), x = x$Key),]
+  # coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+  # 
+  # 
+  # df.coins.running = data.frame(User = character(),
+  #                               Timeframe = character(),
+  #                               Coins = character(),
+  #                               Target = character(),
+  #                               Confidence = character(),
+  #                               Percentage = character(),
+  #                               TakeProfit = character(),
+  #                               StopLoss = character(),
+  #                               Active = character())
+  # for(z in 1:length(coins.running)){
+  #   dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user), object = paste0(coins.running[z],".rds"))
+  #   df.coins.running = rbind(df.coins.running, dfx)
+  # }
+  
+  # For each coin running, I want to grab the last weeks worth of data by
+  # the automation timeframe
+  
+  ohlc.list = list()
+  to.remove = c()
+  
+  for(i in 1:nrow(df.coins.running)){
+    df = possibly_riingo_crypto_prices(ticker = df.coins.running$Coins[i],
+                                       start_date = Sys.Date() - 7,
+                                       end_date = Sys.Date(),
+                                       resample_frequency = df.coins.running$Timeframe[i],
+                                       exchanges = "binance")
+    if(length(df) == 1){
+      to.remove = c(to.remove,i)
+      next()
+    }
+    
+    bst = s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/TiingoBoosts"),
+                       object = paste0("bst_",df.coins.running$Coins[i],"_",df.coins.running$Timeframe[i],df.coins.running$Target[i],".rds"))
+    
+    if(df.coins.running$Timeframe[i] == '4hour' | df.coins.running$Timeframe[i] == '8hour'| df.coins.running$Timeframe[i] == '1hour'| df.coins.running$Timeframe[i] == '15min'){
+      #df1 = riingo_crypto_prices('REEFUSDT', end_date = Sys.Date(), resample_frequency = '4hour')
+      #df1 = df1[-nrow(df1),]
+      #df2 = riingo_crypto_latest('REEFUSDT', resample_frequency = '4hour')
+      #df = rbind(df1,df2)
+      df1 = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i], exchanges = "binance")
+      df1 = df1[-nrow(df1),]
+      df2 = riingo_crypto_latest(df.coins.running$Coins[i], resample_frequency = df.coins.running$Timeframe[i], exchanges = "binance")
+      df = rbind(df1,df2)
+    }else{
+      df = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i], exchanges = "binance")
+    }
+    
+    # Modify data to be more useable
+    df = df[,4:9]
+    df$Percent.Change = NA
+    
+    colnames(df) = c("Date","Open","High","Low","Close","Volume","Percent.Change")
+    df$Percent.Change = round((((df$High / df$Open) * 100) - 100), digits = 1)
+    
+    
+    
+    #Add column for binary previouos day change+
+    df$Previous = NA
+    for(k in 2:nrow(df)){
+      if(df$Percent.Change[k - 1] <= 0){
+        df$Previous[k] = 0
+      }else{
+        df$Previous[k] = 1
+      }
+    }
+    
+    # df$Percent.Change = c(NA,df$Percent.Change[-nrow(df)])
+    
+    
+    # Remove first row since we can't use it
+    df = df[-1,]
+    df.9 = df
+    
+    # Adding Moving Averages
+    df$MA10 = NA
+    df$MA20 = NA
+    
+    for(k in 21:nrow(df)){
+      df$MA10[k] = mean(df$Close[k-10:k])
+      df$MA20[k] = mean(df$Close[k-20:k])
+    }
+    # df$MA10 = round(df$MA10, digits = 2)
+    # df$MA20 = round(df$MA20, digits = 2)
+    
+    # Add column for if MA10 is above or below MA20
+    df$MAAB = 0
+    
+    df$MAAB[df$MA10 > df$MA20] = 1
+    
+    df = df[,-which(colnames(df) %in% c("MA10","MA20"))]
+    
+    # Convert to actual dates and remove year and change to numeric
+    #df$Date = str_replace(string = df$Date, pattern = "T", replacement = " ")
+    #df$Date = str_replace(string = df$Date, pattern = "Z", replacement = "")
+    
+    df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
+    
+    df = df[!is.na(df$Date),]
+    
+    
+    df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
+    
+    df = as.xts(df)
+    
+    
+    candle.list = list(hammer(df), inverted.hammer(df), bearish.engulf(df), bullish.engulf(df), up.trend(df), down.trend(df))
+    
+    # Remove unusable rows
+    for(k in 1:length(candle.list)){
+      df = cbind(df, candle.list[[k]])
+    }
+    df = df[-(1:20),]
+    
+    
+    # Add lagged values
+    for(k in 1:5){
+      high.lag = Lag(df$High, k)
+      close.lag = Lag(df$Close, k)
+      percent.change.lag = ((high.lag/close.lag) - 1) * 100
+      df = cbind(df, percent.change.lag)
+      
+    }
+    
+    df = df[-c(1:5),]
+    
+    df[is.na(df)] = 0
+    
+    # remove only last row
+    df = df[-nrow(df),]
+    
+    ### Grab open high low close for later
+    df.ohlc = as.data.frame(df[,c(1:4)])
+    df.ohlc$Coins = df.coins.running$Coins[i]
+    df.ohlc$Time = row.names(df.ohlc)
+    df.ohlc = df.ohlc[-1,]
+    
+    ### Remove OPEN HIGH LOW CLOSE
+    df = df[,-c(1:4)]
+    
+    
+    
+    
+    ############################################# 
+    ############################################# PREDICT CURRENT CANDLE
+    predict.next = predict(bst, df)
+    
+    
+    
+    if(i == 1){
+      predictions.comb = data.frame(predict.next)
+    }else{
+      if(length(predict.next) != nrow(predictions.comb)){
+        print("skipping coin")
+        to.remove = c(to.remove, i)
+        next()
+      }
+      predictions.comb = cbind(predictions.comb, predict.next)
+    }
+    
+    temp.list = list(df.ohlc = df.ohlc)
+    assign(paste0("temp.list.",df.coins.running$Coins[i]),temp.list,.GlobalEnv)
+    
+    ohlc.list = c(ohlc.list,temp.list)
+    
+    print(paste0(i," out of: ",nrow(df.coins.running)))
+  }
+  
+  if(length(to.remove) != 0){
+    colnames(predictions.comb) = df.coins.running$Coins[-to.remove]
+  }else{
+    colnames(predictions.comb) = df.coins.running$Coins
+  }
+  
+  t.predictions.comb = t(predictions.comb)
+  
+  woulda.bought = c()
+  confidence.scores = c()
+  for(i in 1:ncol(t.predictions.comb)){
+    x = (which(t.predictions.comb[,i] >= confidence.score & t.predictions.comb[,i] == max(t.predictions.comb[,i])))
+    conf = max(t.predictions.comb[,i])
+    if(length(x) < 1){
+      x = NA
+      conf = NA
+    }
+    
+    confidence.scores = c(confidence.scores, conf)
+    woulda.bought = c(woulda.bought,x)
+  }
+  
+  df.purchases = ohlc.list[[woulda.bought[1]]][0,]
+  
+  for(i in 1:(length(woulda.bought))){
+    if(is.na(woulda.bought[i])){
+      next()
+    }
+    
+    temp.df = ohlc.list[[woulda.bought[i]]][i,]
+    df.purchases = rbind(df.purchases,temp.df)
+    
+  }
+  if(any(is.na(confidence.scores))){
+    df.purchases$Confidence = round(confidence.scores[-which(is.na(confidence.scores))], 3)
+  }else{
+    df.purchases$Confidence = round(confidence.scores, 3)
+  }
+  
+  df.purchases = na.omit(df.purchases)
+  
+  df.purchases$OH = round((df.purchases$High - df.purchases$Open) / df.purchases$Open * 100, 3)
+  df.purchases$OC = round((df.purchases$Close - df.purchases$Open) / df.purchases$Open * 100, 3)
+  
+  df.purchases = left_join(df.purchases, df.coins.running[,c(3,7)], by = "Coins")
+  
+  df.purchases$PL = 0
+  df.purchases$PL[df.purchases$OH >= df.purchases$TakeProfit] = df.purchases$TakeProfit[df.purchases$OH >= df.purchases$TakeProfit]
+  df.purchases$PL[df.purchases$OH < df.purchases$TakeProfit] = df.purchases$OC[df.purchases$OH < df.purchases$TakeProfit]
+  
+  numeric_cols = sapply(df.purchases, is.numeric)
+  df.purchases[numeric_cols] = lapply(df.purchases[numeric_cols], signif, digits = 6)
+  
+  PL = sum(df.purchases$PL)
+  
+  df.purchases$OH = paste0(df.purchases$OH, " %")
+  df.purchases$OC = paste0(df.purchases$OC, " %")
+  df.purchases$TakeProfit = paste0(df.purchases$TakeProfit, " %")
+  df.purchases$PL = paste0(df.purchases$PL, " %")
+  
+  colnames(df.purchases) = c("Open", "High", "Low", "Close", "Coin", "Time (UTC)", "Confidence Scores", "Open/High", "Open/Close", "Take Profit", "PL")
+  
+  fee.to.subtract = fee * nrow(df.purchases) * 2
+  PL = PL - fee.to.subtract
+  
+  to.return = list(df.purchases = df.purchases,
+                   PL = PL)
+  
+  return(to.return)
+}
 
