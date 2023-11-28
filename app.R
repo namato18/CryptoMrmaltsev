@@ -776,7 +776,9 @@ ui <- secure_app(
                       paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
                   ),
                   box(title = "Inputs", status = "primary", solidHeader = TRUE,width=4,
-                      selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("1 Hour" = "1hour",
+                      selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("15 min" = "15min",
+                                                                                                       "30 min" = "30min",
+                                                                                                       "1 Hour" = "1hour",
                                                                                                        "4 Hour" = "4hour")),
                       br(),
                       selectInput('checkGroupTelegram',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = FALSE, selected = 'BTCUSDT'),
@@ -818,7 +820,8 @@ ui <- secure_app(
                   box(title = "Short Term Backtesting", status = "primary", solidHeader = TRUE,width=12,
                       selectInput(inputId = "shortBacktestTimeframe",label = "Please Select a Timeframe", choices = list("1 week" = 7,
                                                                                                                          "2 weeks" = 14,
-                                                                                                                         "1 month" = 28)),
+                                                                                                                         "1 month" = 28,
+                                                                                                                         "3 month" = 90)),
                       sliderInput(inputId = "confidenceBacktestAutomation", label = "Confidence Score Threshold", min = 0, max = 1, value = 0.7, step = 0.02),
                       numericInput(inputId = "feeInput", label = "Fee per Transaction", value = 0),
                       actionButton(inputId = "shortBacktest", label = "Generate Backtest"),
@@ -879,6 +882,7 @@ server <- function(input, output, session) {
   userpass.df2 =  s3read_using(FUN = readRDS, bucket = "cryptomlbucket/siragh_users", object = "userpass.df.rds")
   
   userpass.df = rbind(userpass.df, userpass.df2)
+  userpass.df = userpass.df[-which(duplicated(userpass.df$user)),]
   usernames = userpass.df$user
   passwords = userpass.df$password
   
@@ -914,7 +918,7 @@ server <- function(input, output, session) {
     if(is.null(reactiveValuesToList(res_auth)$user)){
       
     }else{
-      if(reactiveValuesToList(res_auth)$user == 'nick'){
+      if(reactiveValuesToList(res_auth)$user == 'nick' | reactiveValuesToList(res_auth)$user == 'nick2' | reactiveValuesToList(res_auth)$user == 'nick3'){
         secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
         api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
         binance::authenticate(key = api_key,secret = secret)
@@ -1686,17 +1690,21 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$checkGroupTelegram, {
-    support_check = possibly_riingo_crypto_latest(input$checkGroupTelegram, resample_frequency = '5min')
-    
-    if(length(support_check) == 1){
-      print("erroring coin, not supported")
-      shinyalert("Error",
-                 "This coin is not supported for automation. Please select another!",
-                 type = 'error')
-    }else if(length(binance_support_check(input$checkGroupTelegram)) == 1){
-      shinyalert("Error",
-                 "This coin is not supported for automation. Please select another!",
-                 type = 'error')
+    if(!is.null(input$checkGroupTelegram)){
+      
+      
+      support_check = possibly_riingo_crypto_latest(input$checkGroupTelegram, resample_frequency = '5min')
+      
+      if(length(support_check) == 1){
+        print("erroring coin, not supported")
+        shinyalert("Error",
+                   "This coin is not supported for automation. Please select another!",
+                   type = 'error')
+      }else if(length(binance_support_check(input$checkGroupTelegram)) == 1){
+        shinyalert("Error",
+                   "This coin is not supported for automation. Please select another 1!",
+                   type = 'error')
+      }
     }
   })
   
@@ -1828,6 +1836,14 @@ server <- function(input, output, session) {
     output$shortBacktestTable = renderDataTable(datatable(x$df.purchases, style = "bootstrap"))
     output$ProfitLoss = renderValueBox(shinydashboard::valueBox(value = paste0(x$PL, "%"), subtitle = "Profit or Loss %", color = "aqua", width = 3))
     print(x$PL)
+  })
+  
+  observeEvent(input$timeframeAutomation, {
+    if(input$timeframeAutomation == "1hour" | input$timeframeAutomation == "15min" | input$timeframeAutomation == "30min" | input$timeframeAutomation == "45min"){
+      updateSliderInput(session = session, inputId = "sliderAutomationTarget", "Select Target Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.8)
+    }else if(input$timeframeAutomation == "4hour"){
+      updateSliderInput(session = session, inputId = "sliderAutomationTarget", "Select Target Percentage Increase", min = 0.2, max = 3, step = 0.2, value = 0.8)
+    }
   })
   
   

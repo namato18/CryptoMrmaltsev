@@ -2608,11 +2608,11 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   # user = "nick"
   # timeframe = 7
   # fee = 0
-  # confidence.score = 0.74
+  # confidence.score = 0.7
   # 
-  # x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
+  # x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Telegram_Automation/")
   # 
-  # x.sel = x[grepl(pattern = paste0("Automation/",user,"/"), x = x$Key),]
+  # x.sel = x[grepl(pattern = paste0("Telegram_Automation/",user,"/"), x = x$Key),]
   # coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
   # 
   # 
@@ -2626,10 +2626,10 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   #                               StopLoss = character(),
   #                               Active = character())
   # for(z in 1:length(coins.running)){
-  #   dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user), object = paste0(coins.running[z],".rds"))
+  #   dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Telegram_Automation/",user), object = paste0(coins.running[z],".rds"))
   #   df.coins.running = rbind(df.coins.running, dfx)
   # }
-  
+  # 
   # For each coin running, I want to grab the last weeks worth of data by
   # the automation timeframe
   
@@ -2646,11 +2646,11 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
       to.remove = c(to.remove,i)
       next()
     }
-    
     bst = s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/TiingoBoosts"),
                        object = paste0("bst_",df.coins.running$Coins[i],"_",df.coins.running$Timeframe[i],df.coins.running$Target[i],".rds"))
     
-    if(df.coins.running$Timeframe[i] == '4hour' | df.coins.running$Timeframe[i] == '8hour'| df.coins.running$Timeframe[i] == '1hour'| df.coins.running$Timeframe[i] == '15min'){
+    if(df.coins.running$Timeframe[i] == '4hour' | df.coins.running$Timeframe[i] == '8hour'| df.coins.running$Timeframe[i] == '1hour'| df.coins.running$Timeframe[i] == '15min' |
+       df.coins.running$Timeframe[i] == '30min' | df.coins.running$Timeframe[i] == '45min'){
       #df1 = riingo_crypto_prices('REEFUSDT', end_date = Sys.Date(), resample_frequency = '4hour')
       #df1 = df1[-nrow(df1),]
       #df2 = riingo_crypto_latest('REEFUSDT', resample_frequency = '4hour')
@@ -2750,6 +2750,8 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
     df.ohlc = as.data.frame(df[,c(1:4)])
     df.ohlc$Coins = df.coins.running$Coins[i]
     df.ohlc$Time = row.names(df.ohlc)
+    
+    # REMOVE FIRST ONE TO GET TIMEING RIGHT FOR PURCHASES
     df.ohlc = df.ohlc[-1,]
     
     ### Remove OPEN HIGH LOW CLOSE
