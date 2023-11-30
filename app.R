@@ -138,7 +138,9 @@ ui <- secure_app(
                         menuItem("", tabName = 'predictNextWeek', icon = icon('chart-line')),
                         # menuItem("", tabName = 'alphaVantageBacktest', icon = icon('calendar')),
                         menuItem("", tabName = "forexFactoryBacktest", icon = icon('calendar')),
-                        menuItem("", tabName = "telegramNotifications", icon = icon("telegram"))
+                        menuItem("", tabName = "telegramNotifications", icon = icon("telegram")),
+                        menuItemOutput("automation_tab")
+                        # menuItem("", tabName = "automation", icon = icon("robot"))
                         # menuItem("", tabName = "etherscan", icon = icon("searchengin"))
                       )
                     )
@@ -538,56 +540,56 @@ ui <- secure_app(
                 )
         ),
         
-        tabItem(tabName = "binance",
-                fluidRow(
-                  
-                  # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
-                  strong(h1("Binance Integration")),
-                  box(width=10,
-                      paste0("This tab offers you the capability of performing trades on Binance directly through this interface.")
-                  ),
-                  box(title = "Inputs", status = "primary", solidHeader = TRUE,
-                      selectInput('selectCoinBinance', "Select a Coin", choices = checkbox_list, selected = 'BTCUSDT'),
-                      br(),
-                      selectInput('selectTypeBinance', 'Market or Limit', choices = list('Market' = 'MARKET',
-                                                                                         "Limit" = 'LIMIT'),
-                                  selected = 'Market'),
-                      br(),
-                      selectInput('selectSideBinance', 'Buy or Sell', choices = list("Buy" = "BUY",
-                                                                                     "Sell" = "SELL"),
-                                  selected = 'Buy'),
-                      br(),
-                      # sliderInput("takeProfitBinance", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
-                      # br(),
-                      # sliderInput("stopLossBinance", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
-                      # br(),
-                      numericInput("tradeQuantity", "Quantity", value = 0, min = 0, step = 0.1),
-                      textOutput('decimalsAllowed'),
-                      br(),
-                      sliderInput('percentSliderBinance', 'Percentage of USDT balance',value = 0,min = 0, max = 100, step = 0.1)
-                  ),
-                  box(title = "Live Price", status = "primary", solidHeader = TRUE,
-                      actionButton(inputId = 'getLivePrice', label = 'Refresh Live Price'),
-                      br(),
-                      br(),
-                      textOutput('livePrice')
-                  ),
-                  box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
-                      dataTableOutput('spotAccountBalances')
-                  ),
-                  actionBttn(inputId = 'submitBinance',
-                             label = 'Submit',
-                             icon = icon('money-bill-trend-up'),
-                             style = 'pill',
-                             color = 'warning',
-                             size = 'lg',
-                             block = TRUE),
-                  br(),
-                  dataTableOutput('binancePredictionTable')
-                  
-                  
-                )
-        ),
+        # tabItem(tabName = "binance",
+        #         fluidRow(
+        #           
+        #           # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
+        #           strong(h1("Binance Integration")),
+        #           box(width=10,
+        #               paste0("This tab offers you the capability of performing trades on Binance directly through this interface.")
+        #           ),
+        #           box(title = "Inputs", status = "primary", solidHeader = TRUE,
+        #               selectInput('selectCoinBinance', "Select a Coin", choices = checkbox_list, selected = 'BTCUSDT'),
+        #               br(),
+        #               selectInput('selectTypeBinance', 'Market or Limit', choices = list('Market' = 'MARKET',
+        #                                                                                  "Limit" = 'LIMIT'),
+        #                           selected = 'Market'),
+        #               br(),
+        #               selectInput('selectSideBinance', 'Buy or Sell', choices = list("Buy" = "BUY",
+        #                                                                              "Sell" = "SELL"),
+        #                           selected = 'Buy'),
+        #               br(),
+        #               # sliderInput("takeProfitBinance", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
+        #               # br(),
+        #               # sliderInput("stopLossBinance", "Set Stop Loss %",min = 0, max = 20, step = 0.1, value = 0),
+        #               # br(),
+        #               numericInput("tradeQuantity", "Quantity", value = 0, min = 0, step = 0.1),
+        #               textOutput('decimalsAllowed'),
+        #               br(),
+        #               sliderInput('percentSliderBinance', 'Percentage of USDT balance',value = 0,min = 0, max = 100, step = 0.1)
+        #           ),
+        #           box(title = "Live Price", status = "primary", solidHeader = TRUE,
+        #               actionButton(inputId = 'getLivePrice', label = 'Refresh Live Price'),
+        #               br(),
+        #               br(),
+        #               textOutput('livePrice')
+        #           ),
+        #           box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
+        #               dataTableOutput('spotAccountBalances')
+        #           ),
+        #           actionBttn(inputId = 'submitBinance',
+        #                      label = 'Submit',
+        #                      icon = icon('money-bill-trend-up'),
+        #                      style = 'pill',
+        #                      color = 'warning',
+        #                      size = 'lg',
+        #                      block = TRUE),
+        #           br(),
+        #           dataTableOutput('binancePredictionTable')
+        #           
+        #           
+        #         )
+        # ),
         # tabItem(tabName = "automation",
         #         fluidRow(
         #           # img(src='ai3.png', width = 125, height = 125, align = 'right' ),
@@ -610,8 +612,8 @@ ui <- secure_app(
         #               sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
         #               br(),
         #               sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9)
-        #               
-        #               
+        # 
+        # 
         #           ),
         #           box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,
         #               dataTableOutput('spotAccountBalancesAutomation')
@@ -647,7 +649,7 @@ ui <- secure_app(
         #           #     selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
         #           #     dataTableOutput("tradesPlaced")
         #           # )
-        #           
+        # 
         #         )),
         # tabItem(tabName = "alphaVantageBacktest",
         #         fluidRow(
@@ -776,14 +778,14 @@ ui <- secure_app(
                       paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
                   ),
                   box(title = "Inputs", status = "primary", solidHeader = TRUE,width=4,
-                      selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("15 min" = "15min",
+                      selectInput("timeframeTelegramAutomation","Pick a Timeframe to Automate", choices = list("15 min" = "15min",
                                                                                                        "30 min" = "30min",
                                                                                                        "1 Hour" = "1hour",
                                                                                                        "4 Hour" = "4hour")),
                       br(),
                       selectInput('checkGroupTelegram',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = FALSE, selected = 'BTCUSDT'),
                       br(),
-                      sliderInput('sliderAutomationTarget', 'Select Target Percentage Increase', min = 0.2, max = 3, value = 1, step = 0.2),
+                      sliderInput('sliderTelegramAutomationTarget', 'Select Target Percentage Increase', min = 0.2, max = 3, value = 1, step = 0.2),
                       br(),
                       # sliderInput('sliderBalanceUsed', 'Select Percentage of USDT Balance to Use', min = 1, max = 100, value = 1, step = 1),
                       # br(),
@@ -791,7 +793,7 @@ ui <- secure_app(
                       br(),
                       # sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
                       # br(),
-                      sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
+                      sliderInput("confidenceThresholdTelegramAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
                       br(),
                       actionBttn(inputId = 'submitTelegramAutomation',
                                  label = 'Begin Notifications',
@@ -808,8 +810,89 @@ ui <- secure_app(
                   br(),
                   box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
                       # selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
-                      dataTableOutput("activeAutomationInfo"),
+                      dataTableOutput("activeTelegramAutomationInfo"),
                       actionBttn(inputId = 'cancelTelegramAutomation',
+                                 label = 'Cancel Automation',
+                                 icon = icon('robot'),
+                                 style = 'pill',
+                                 color = 'danger',
+                                 size = 'lg',
+                                 block = TRUE)
+                  ),
+                  box(title = "Short Term Backtesting", status = "primary", solidHeader = TRUE,width=12,
+                      selectInput(inputId = "shortBacktestTimeframeTelegram",label = "Please Select a Timeframe", choices = list("1 week" = 7,
+                                                                                                                         "2 weeks" = 14,
+                                                                                                                         "1 month" = 28,
+                                                                                                                         "3 month" = 90)),
+                      sliderInput(inputId = "confidenceBacktestTelegramAutomation", label = "Confidence Score Threshold", min = 0, max = 1, value = 0.7, step = 0.02),
+                      numericInput(inputId = "feeInputTelegram", label = "Fee per Transaction", value = 0),
+                      actionButton(inputId = "shortBacktestTelegram", label = "Generate Backtest"),
+                      dataTableOutput("shortBacktestTableTelegram"),
+                      valueBoxOutput("ProfitLossTelegram")
+                  ),
+                  
+                  
+                )),
+        tabItem(tabName = "automation",
+                fluidRow(
+                  add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "bottom-right"),
+                  # selectInput(inputId = "selectAPI", label = "Select API", choices = list("nick" = "nick",
+                  #                                                                         "gentlemam1"="gentlemam1",
+                  #                                                                         "gentlemam2" = "gentlemam2",
+                  #                                                                         "gentlemam3" = "gentlemam3")),
+
+                  # strong(h1("Binance Automation")),
+                  box(title = "Binance Automation",status = "primary",solidHeader = TRUE, width=12,
+                      paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
+                  ),
+                  box(title = "Inputs", status = "primary", solidHeader = TRUE,width=4,
+                      selectInput("timeframeAutomation","Pick a Timeframe to Automate", choices = list("15 min" = "15min",
+                                                                                                       "30 min" = "30min",
+                                                                                                       "45 min" = "45min",
+                                                                                                       "1 Hour" = "1hour",
+                                                                                                       "4 Hour" = "4hour",
+                                                                                                       "8 Hour" = "8hour",
+                                                                                                       "12 Hour" = "12hour",
+                                                                                                       "1 day" = "1day")),
+                      br(),
+                      selectInput('checkGroupBinance',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = FALSE, selected = 'BTCUSDT'),
+                      br(),
+                      sliderInput('sliderAutomationTarget', 'Select Target Percentage Increase', min = 0.2, max = 3, value = 1, step = 0.2),
+                      br(),
+                      sliderInput('sliderBalanceUsed', 'Select Percentage of USDT Balance to Use', min = 1, max = 100, value = 1, step = 1),
+                      br(),
+                      sliderInput("takeProfitBinanceAutomation", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
+                      br(),
+                      # sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
+                      # br(),
+                      sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
+                      br(),
+                      actionBttn(inputId = 'submitBinanceAutomation',
+                                 label = 'Begin Automation',
+                                 icon = icon('robot'),
+                                 style = 'pill',
+                                 color = 'success',
+                                 size = 'lg',
+                                 block = TRUE)
+
+                  ),
+                  box(title = "Live Price", status = "primary", solidHeader = TRUE,
+                      # actionButton(inputId = 'getLivePrice', label = 'Refresh Live Price'),
+                      # br(),
+                      # br(),
+                      textOutput('livePrice')
+                  ),
+                  box(title = "Spot Account Balances", status = "primary", solidHeader = TRUE,width = 8,
+                      dataTableOutput('spotAccountBalancesAutomation')
+                  ),
+                  # box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
+                  #     dataTableOutput("currentAutomation")
+                  # ),
+                  br(),
+                  box(title = "Current Automation Running", status = "primary", solidHeader = TRUE,width=8,
+                      # selectInput('selectActiveAutomation', "Select a Coin", choices = checkbox_list),
+                      dataTableOutput("activeAutomationInfo"),
+                      actionBttn(inputId = 'cancelBinanceAutomation',
                                  label = 'Cancel Automation',
                                  icon = icon('robot'),
                                  style = 'pill',
@@ -828,8 +911,34 @@ ui <- secure_app(
                       dataTableOutput("shortBacktestTable"),
                       valueBoxOutput("ProfitLoss")
                   ),
-                  
-                  
+                  box(title = "Open Orders", status = "primary", solidHeader = TRUE,width=12,
+                      dataTableOutput("openOrders"),
+                      actionButton(inputId = "cancelOrder", label = "Cancel Order")
+                  ),
+                  # box(title = "Volume % Change From Mean 5min Volume Over Past 2 Hours", status = "primary", solidHeader = TRUE,width=4,
+                  #   gaugeOutput("volumeGauge")
+                  # ),
+                  # actionBttn(inputId = 'submitBinanceAutomation',
+                  #            label = 'Begin Automation',
+                  #            icon = icon('robot'),
+                  #            style = 'pill',
+                  #            color = 'success',
+                  #            size = 'lg',
+                  #            block = TRUE),
+                  # br(),
+                  # actionBttn(inputId = 'cancelBinanceAutomation',
+                  #            label = 'Cancel Automation',
+                  #            icon = icon('robot'),
+                  #            style = 'pill',
+                  #            color = 'danger',
+                  #            size = 'lg',
+                  #            block = TRUE),
+                  br()
+                  # box(title = "Trades Placed", status = "primary", solidHeader = TRUE,width=12,
+                  #     selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
+                  #     dataTableOutput("tradesPlaced")
+                  # )
+
                 ))
         
         # tabItem(tabName = "etherscan",
@@ -903,6 +1012,15 @@ server <- function(input, output, session) {
   
   observe({
     invalidateLater(1000, session)
+    
+    if(!is.null(input$checkGroupBinance)){
+      if(input$tablist == "automation"){
+        x = riingo_crypto_latest(input$checkGroupBinance, exchanges = "binance")$close
+      }
+    }
+
+    output$livePrice = renderText(paste0(input$checkGroupBinance,": ",signif(as.numeric(x[length(x)]), digits = 4)))
+    
     isolate({
       if(is.null(input$timeframePredict)){
         
@@ -918,6 +1036,10 @@ server <- function(input, output, session) {
     if(is.null(reactiveValuesToList(res_auth)$user)){
       
     }else{
+      if(reactiveValuesToList(res_auth)$user == 'eb1tdaddy' | reactiveValuesToList(res_auth)$user == 'nick'){
+        output$automation_tab = renderMenu(menuItem("", tabName = "automation", icon = icon("robot")))
+      }
+      
       if(reactiveValuesToList(res_auth)$user == 'nick' | reactiveValuesToList(res_auth)$user == 'nick2' | reactiveValuesToList(res_auth)$user == 'nick3'){
         secret = "rEg9vqo61kMpB7up3kbp2Huy1mMyYQFpAdyc3OBO32dwE8m32eHcr3185aEa2d7k"
         api_key = "UWG67pA2SI65uA3ZzqEzSQZbU9poUYHtOiZ5YAdV3lJXhi6dUSeanbxLlcTFrN3w"
@@ -926,22 +1048,37 @@ server <- function(input, output, session) {
       }else{
         #Gentlemam
         
-        secret = "9qhPtPDePdBJnWL5zThAxqrUWXNcv37NYbyDHdkDctoJZGa0CZS6IyPqmqOdIh3i"
-        api_key = "wZpij1rDxXsrnyRyuNmuaoLPsVSgJKvmmgt0rzi44GZB03za9GBFqeB6chXi1p0T"
+        secret = "BIAwNDCD8wE0vbTsOohewRj4pKepyBTuqSYVjwdU5CLSRRQEQAB2AEmPmQqFTQ71"
+        api_key = "CSd5FtnzmasGAdqD4hXthrekaMtprukLMh8ZhtLLZhQuTSEn82jGH7mtWGZoAhQg"
         binance::authenticate(key = api_key,secret = secret)
         binance::base_url("https://api.binance.com")
       }
       user.logged.in = reactiveValuesToList(res_auth)$user
       assign("user.logged.in",user.logged.in,.GlobalEnv)
       
+      output$spotAccountBalancesAutomation = renderDataTable(datatable(spot_account_balances(), style = "bootstrap"))
+      
+      
       
       x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Telegram_Automation/")
+      x2 = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
       
       x.sel = x[grepl(pattern = paste0("Telegram_Automation/",user.logged.in,"/"), x = x$Key),]
       coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+      x.sel2 = x2[grepl(pattern = paste0("Automation/",user.logged.in,"/"), x = x2$Key),]
+      coins.running2 = na.omit(str_match(string = x.sel2$Key, pattern = "/.*/(.*).rds")[,2])
       
       
       df.coins.running = data.frame(User = character(),
+                                    Timeframe = character(),
+                                    Coins = character(),
+                                    Target = character(),
+                                    Confidence = character(),
+                                    Percentage = character(),
+                                    TakeProfit = character(),
+                                    StopLoss = character(),
+                                    Active = character())
+      df.coins.running2 = data.frame(User = character(),
                                     Timeframe = character(),
                                     Coins = character(),
                                     Target = character(),
@@ -957,12 +1094,27 @@ server <- function(input, output, session) {
       # if(length(coins.running) != 0){
       y = data.frame(Coins = coins.running)
       if(length(coins.running > 0)){
-        output$activeAutomationInfo = renderDataTable(datatable(df.coins.running, selection = "single", style = "bootstrap"))
+        output$activeTelegramAutomationInfo = renderDataTable(datatable(df.coins.running, selection = "single", style = "bootstrap"))
         assign("df.coins.running",df.coins.running,.GlobalEnv)
+        
+      }else{
+        output$activeTelegramAutomationInfo = NULL
+      }
+      
+      for(z in 1:length(coins.running2)){
+        dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user.logged.in), object = paste0(coins.running2[z],".rds"))
+        df.coins.running2 = rbind(df.coins.running2, dfx)
+      }
+      # if(length(coins.running) != 0){
+      y = data.frame(Coins = coins.running2)
+      if(length(coins.running2 > 0)){
+        output$activeAutomationInfo = renderDataTable(datatable(df.coins.running2, selection = "single", style = "bootstrap"))
+        assign("df.coins.running2",df.coins.running2,.GlobalEnv)
         
       }else{
         output$activeAutomationInfo = NULL
       }
+      
     }
   })
   
@@ -1712,10 +1864,10 @@ server <- function(input, output, session) {
     
     
     x = data.frame(User = user.logged.in,
-                   Timeframe = input$timeframeAutomation,
+                   Timeframe = input$timeframeTelegramAutomation,
                    Coins = input$checkGroupTelegram,
-                   Target = input$sliderAutomationTarget,
-                   Confidence = input$confidenceThresholdAutomation,
+                   Target = input$sliderTelegramAutomationTarget,
+                   Confidence = input$confidenceThresholdTelegramAutomation,
                    Percentage = NA,
                    TakeProfit = input$takeProfitTelegramAutomation,
                    StopLoss = NA,
@@ -1762,10 +1914,10 @@ server <- function(input, output, session) {
     }
     
     if(length(coins.running) > 0){
-      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running, selection = "single"))
+      output$activeTelegramAutomationInfo = renderDataTable(datatable(df.coins.running, selection = "single"))
       assign("df.coins.running",df.coins.running,.GlobalEnv)
     }else{
-      output$activeAutomationInfo = NULL
+      output$activeTelegramAutomationInfo = NULL
     }    
     
     
@@ -1777,7 +1929,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$cancelTelegramAutomation, {
     
-    row.selected = input$activeAutomationInfo_rows_selected
+    row.selected = input$activeTelegramAutomationInfo_rows_selected
     coin.selected = df.coins.running$Coins[row.selected]
     print(row.selected)
     print(coin.selected)
@@ -1810,12 +1962,149 @@ server <- function(input, output, session) {
       df.coins.running = rbind(df.coins.running, dfx)
     }
     if(length(coins.running > 0)){
-      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running, selection = "single"))
+      output$activeTelegramAutomationInfo = renderDataTable(datatable(df.coins.running, selection = "single"))
       assign("df.coins.running",df.coins.running,.GlobalEnv)
       
     }else{
-      output$activeAutomationInfo = NULL
+      output$activeTelegramAutomationInfo = NULL
     }
+    
+    # }
+    
+    shinyalert("Success",
+               "Your Automation Was Successfully Stopped!",
+               type = 'success')
+  })
+  
+  observeEvent(input$shortBacktestTelegram, {
+    
+    timeframe = input$shortBacktestTimeframeTelegram
+    df = df.coins.running
+    fee = input$feeInputTelegram
+    confidence.score = input$confidenceBacktestTelegramAutomation
+    
+    x = BacktestAutomation(df,reactiveValuesToList(res_auth)$user, timeframe, fee, confidence.score)
+    
+    output$shortBacktestTableTelegram = renderDataTable(datatable(x$df.purchases, style = "bootstrap"))
+    output$ProfitLossTelegram = renderValueBox(shinydashboard::valueBox(value = paste0(x$PL, "%"), subtitle = "Profit or Loss %", color = "aqua", width = 3))
+    print(x$PL)
+  })
+  
+  observeEvent(input$timeframeTelegramAutomation, {
+    if(input$timeframeTelegramAutomation == "1hour" | input$timeframeTelegramAutomation == "15min" | input$timeframeTelegramAutomation == "30min" | input$timeframeTelegramAutomation == "45min"){
+      updateSliderInput(session = session, inputId = "sliderTelegramAutomationTarget", "Select Target Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.8)
+    }else if(input$timeframeTelegramAutomation == "4hour"){
+      updateSliderInput(session = session, inputId = "sliderTelegramAutomationTarget", "Select Target Percentage Increase", min = 0.2, max = 3, step = 0.2, value = 0.8)
+    }
+  })
+  
+  observeEvent(input$submitBinanceAutomation, {
+    
+    x = data.frame(User = user.logged.in,
+                   Timeframe = input$timeframeAutomation,
+                   Coins = input$checkGroupBinance,
+                   Target = input$sliderAutomationTarget,
+                   Confidence = input$confidenceThresholdAutomation,
+                   Percentage = input$sliderBalanceUsed,
+                   TakeProfit = input$takeProfitBinanceAutomation,
+                   StopLoss = 0.33 * input$takeProfitBinanceAutomation,
+                   Active = TRUE
+    )
+    saveRDS(x, file = paste0(tempdir(), "/x.rds"))
+    
+    aws.s3::put_folder(user.logged.in ,bucket = "cryptomlbucket/Automation")
+    
+    put_object(
+      file = file.path(tempdir(), "x.rds"),
+      object = paste0(input$checkGroupBinance,".rds"),
+      bucket = paste0("cryptomlbucket/Automation/",user.logged.in)
+    )
+    
+    x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
+    
+    x.sel = x[grepl(pattern = paste0("Automation/",user.logged.in,"/"), x = x$Key),]
+    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+    if(length(coins.running) != 0){
+      y = data.frame(Coins = coins.running)
+      # output$currentAutomation = renderDataTable(datatable(y))
+    }
+    
+    # updateSelectInput(session = session, inputId = 'selectTradesPlaced', choices = y$Coins, selected = y$Coins[1])
+    # updateSelectInput(session = session, inputId = 'selectActiveAutomation', choices = y$Coins, selected = y$Coins[1])
+    
+    x2 = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
+    
+    x.sel2 = x2[grepl(pattern = paste0("Automation/",user.logged.in,"/"), x = x2$Key),]
+    coins.running2 = na.omit(str_match(string = x.sel2$Key, pattern = "/.*/(.*).rds")[,2])
+    
+    df.coins.running2 = data.frame(User = character(),
+                                  Timeframe = character(),
+                                  Coins = character(),
+                                  Target = character(),
+                                  Confidence = character(),
+                                  Percentage = character(),
+                                  TakeProfit = character(),
+                                  StopLoss = character(),
+                                  Active = character())
+    for(z in 1:length(coins.running)){
+      dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user.logged.in), object = paste0(coins.running2[z],".rds"))
+      df.coins.running2 = rbind(df.coins.running2, dfx)
+    }
+    
+    if(length(coins.running) > 0){
+      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running2, selection = "single", style = "bootstrap"))
+      assign("df.coins.running2",df.coins.running2,.GlobalEnv)
+    }else{
+      output$activeAutomationInfo = NULL
+    }    
+    
+    
+    
+    shinyalert("Success",
+               "Your Automation Was Successfully Started!",
+               type = 'success')
+  })
+  
+  observeEvent(input$cancelBinanceAutomation, {
+    
+    row.selected = input$activeAutomationInfo_rows_selected
+    coin.selected = df.coins.running$Coins[row.selected]
+    print(row.selected)
+    print(coin.selected)
+    
+    aws.s3::delete_object(object = paste0(coin.selected,".rds"), bucket = paste0("cryptomlbucket/Automation/",user.logged.in))
+    x = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
+    
+    x.sel = x[grepl(pattern = paste0("Automation/",user.logged.in,"/"), x = x$Key),]
+    coins.running = na.omit(str_match(string = x.sel$Key, pattern = "/.*/(.*).rds")[,2])
+    y = data.frame(Coins = coins.running)
+    
+    
+    x2 = aws.s3::get_bucket_df("cryptomlbucket", prefix = "Automation/")
+    
+    x.sel2 = x2[grepl(pattern = paste0("Automation/",user.logged.in,"/"), x = x2$Key),]
+    coins.running2 = na.omit(str_match(string = x.sel2$Key, pattern = "/.*/(.*).rds")[,2])
+    
+    df.coins.running2 = data.frame(User = character(),
+                                   Timeframe = character(),
+                                   Coins = character(),
+                                   Target = character(),
+                                   Confidence = character(),
+                                   Percentage = character(),
+                                   TakeProfit = character(),
+                                   StopLoss = character(),
+                                   Active = character())
+    for(z in 1:length(coins.running)){
+      dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user.logged.in), object = paste0(coins.running2[z],".rds"))
+      df.coins.running2 = rbind(df.coins.running2, dfx)
+    }
+    
+    if(length(coins.running) > 0){
+      output$activeAutomationInfo = renderDataTable(datatable(df.coins.running2, selection = "single", style = "bootstrap"))
+      assign("df.coins.running2",df.coins.running2,.GlobalEnv)
+    }else{
+      output$activeAutomationInfo = NULL
+    }   
     
     # }
     
@@ -1827,7 +2116,7 @@ server <- function(input, output, session) {
   observeEvent(input$shortBacktest, {
     
     timeframe = input$shortBacktestTimeframe
-    df = df.coins.running
+    df = df.coins.running2
     fee = input$feeInput
     confidence.score = input$confidenceBacktestAutomation
     
@@ -1836,14 +2125,6 @@ server <- function(input, output, session) {
     output$shortBacktestTable = renderDataTable(datatable(x$df.purchases, style = "bootstrap"))
     output$ProfitLoss = renderValueBox(shinydashboard::valueBox(value = paste0(x$PL, "%"), subtitle = "Profit or Loss %", color = "aqua", width = 3))
     print(x$PL)
-  })
-  
-  observeEvent(input$timeframeAutomation, {
-    if(input$timeframeAutomation == "1hour" | input$timeframeAutomation == "15min" | input$timeframeAutomation == "30min" | input$timeframeAutomation == "45min"){
-      updateSliderInput(session = session, inputId = "sliderAutomationTarget", "Select Target Percentage Increase", min = 0.1, max = 1, step = 0.1, value = 0.8)
-    }else if(input$timeframeAutomation == "4hour"){
-      updateSliderInput(session = session, inputId = "sliderAutomationTarget", "Select Target Percentage Increase", min = 0.2, max = 3, step = 0.2, value = 0.8)
-    }
   })
   
   
