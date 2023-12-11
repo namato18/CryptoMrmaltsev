@@ -1248,11 +1248,13 @@ server <- function(input, output, session) {
     
     if(input$selectTypeMult == "Crypto" | input$selectTypeMult == "Stocks"){
       predict.tomorrow.multiple(input$selectTypeMult,input$checkGroup, input$timeframePredict, input$slider3)
+      print('made it out')
     }else{
       predict.next.bh.bl.tar(input$checkGroup, input$timeframePredict, input$slider3)
     }
     
     returned.sentiment = PerformSentimentAnalysis(input$checkGroup, input$slider3, input$selectTypeMult)
+    print('made it out 2')
     
     x = FearGreedToday()
     output$fearGreedRating = renderValueBox(shinydashboard::valueBox(value = toupper(x$fear.greed.rating), subtitle = "Today's Fear/Greed Rating"))

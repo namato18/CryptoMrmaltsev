@@ -470,16 +470,16 @@ createModel <- function(Type,TargetIncreasePercent, SuccessThreshold, Symbol, Ti
 
 
 predict.tomorrow.multiple <- function(Type,Symbols, Timeframe, SuccessThreshold){
-  # # Symbols = Symbols
-  # Symbols = c('AAPL')
-  # Timeframe = 'weekly'
+  # Symbols = Symbols
+  # Symbols = c('BTCUSDT')
+  # Timeframe = '15min'
   # i = 1
   # SuccessThreshold = 0.9
-  # Type="Stocks"
-  assign("predictions.df.indi1", NULL, .GlobalEnv)
-  assign("predictions.df.indi2", NULL, .GlobalEnv)
-  assign("predictions.df.indi3", NULL, .GlobalEnv)
-  assign("predictions.df.indi4", NULL, .GlobalEnv)
+  # Type="Crypto"
+  # assign("predictions.df.indi1", NULL, .GlobalEnv)
+  # assign("predictions.df.indi2", NULL, .GlobalEnv)
+  # assign("predictions.df.indi3", NULL, .GlobalEnv)
+  # assign("predictions.df.indi4", NULL, .GlobalEnv)
   
   
   print(Type)
@@ -1487,7 +1487,7 @@ predict.next.ohlc = function(symbol, output){
   
   df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = timeframe)
   df1 = df1[-nrow(df1),]
-  df2 = httr::GET(paste0("https://api.tiingo.com/tiingo/fx/",pair,"/prices?resampleFreq=",timeframe,"&token=6fbd6ce7c9e035489f6238bfab127fcedbe34ac2"))
+  df2 = httr::GET(paste0("https://api.tiingo.com/tiingo/fx/",pair,"/prices?resampleFreq=",timeframe,"&token=bea6df07d69d627087abb23b369b3d0f82e75739"))
   request_char = rawToChar(df2$content)
   request_json = jsonlite::fromJSON(request_char, flatten = TRUE)
   df2 = request_json
@@ -1621,7 +1621,7 @@ predict.next.bh.bl.tar = function(symbol,timeframe, success.thresh){
       
       df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = timeframe)
       df1 = df1[-nrow(df1),]
-      df2 = httr::GET(paste0("https://api.tiingo.com/tiingo/fx/",pair,"/prices?resampleFreq=",timeframe,"&token=6fbd6ce7c9e035489f6238bfab127fcedbe34ac2"))
+      df2 = httr::GET(paste0("https://api.tiingo.com/tiingo/fx/",pair,"/prices?resampleFreq=",timeframe,"&token=bea6df07d69d627087abb23b369b3d0f82e75739"))
       request_char = rawToChar(df2$content)
       request_json = jsonlite::fromJSON(request_char, flatten = TRUE)
       df2 = request_json
@@ -2360,6 +2360,7 @@ ReturnSentimentValue <- function(x){
 PerformSentimentAnalysis <- function(coin, confidence, type){
   # coin = c("BTCUSDT",'ETHUSDT',"LINAUSDT",'REEFUSDT')
   # confidence = 0.5
+  # type = "Crypto"
 
   
   
