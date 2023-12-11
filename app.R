@@ -861,10 +861,10 @@ ui <- secure_app(
                       br(),
                       sliderInput('sliderBalanceUsed', 'Select Percentage of USDT Balance to Use', min = 1, max = 100, value = 1, step = 1),
                       br(),
-                      sliderInput("takeProfitBinanceAutomation", "Set Take Profit %",min = 0, max = 20, step = 0.1, value = 0),
+                      sliderInput("takeProfitBinanceAutomation", "Set Take Profit %",min = 0, max = 5, step = 0.1, value = 0),
                       br(),
-                      # sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 100, step = 1, value = 33),
-                      # br(),
+                      sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 5, step = 0.1, value = 0),
+                      br(),
                       sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
                       br(),
                       actionBttn(inputId = 'submitBinanceAutomation',
@@ -901,11 +901,23 @@ ui <- secure_app(
                                  block = TRUE)
                   ),
                   box(title = "Short Term Backtesting", status = "primary", solidHeader = TRUE,width=12,
-                      selectInput(inputId = "shortBacktestTimeframe",label = "Please Select a Timeframe", choices = list("1 week" = 7,
+                      selectInput(inputId = "shortBacktestCoins", label = "Select Coins to Backtest", choices = checkbox_list, width = "40%"),
+                      selectInput(inputId = "shortBacktestInterval", label = "Select an Automation Timeframe", width = "40%", choices = list("15 min" = "15min",
+                                                                                                                              "30 min" = "30min",
+                                                                                                                              "45 min" = "45min",
+                                                                                                                              "1 Hour" = "1hour",
+                                                                                                                              "4 Hour" = "4hour",
+                                                                                                                              "8 Hour" = "8hour",
+                                                                                                                              "12 Hour" = "12hour",
+                                                                                                                              "1 day" = "1day")),
+                      sliderInput(inputId = "shortBacktestTP", label = "Set Take Profit", min = 0, max = 5, value = 0, step = 0.1, width = "40%"),
+                      sliderInput(inputId = "shortBacktestSL", label = "Set Stop Loss (leaving as 0 will have no stop loss and sell at end of candle if TP is not hit)", min = -5, max = 0, value = 0, step = 0.1, width = "40%"),
+                      sliderInput(inputId = "confidenceBacktestAutomation", label = "Confidence Score Threshold", min = 0, max = 1, value = 0.7, step = 0.02 , width = "40%"),
+                  
+                      selectInput(inputId = "shortBacktestTimeframe",label = "Please Select a Backtesting Window", width = "40%", choices = list("1 week" = 7,
                                                                                                                          "2 weeks" = 14,
                                                                                                                          "1 month" = 28,
                                                                                                                          "3 month" = 90)),
-                      sliderInput(inputId = "confidenceBacktestAutomation", label = "Confidence Score Threshold", min = 0, max = 1, value = 0.7, step = 0.02),
                       numericInput(inputId = "feeInput", label = "Fee per Transaction", value = 0),
                       actionButton(inputId = "shortBacktest", label = "Generate Backtest"),
                       dataTableOutput("shortBacktestTable"),
@@ -1015,11 +1027,11 @@ server <- function(input, output, session) {
     
     if(!is.null(input$checkGroupBinance)){
       if(input$tablist == "automation"){
-        x = riingo_crypto_latest(input$checkGroupBinance, exchanges = "binance")$close
+        # x = riingo_crypto_latest(input$checkGroupBinance, exchanges = "binance")$close
       }
     }
 
-    output$livePrice = renderText(paste0(input$checkGroupBinance,": ",signif(as.numeric(x[length(x)]), digits = 4)))
+    # output$livePrice = renderText(paste0(input$checkGroupBinance,": ",signif(as.numeric(x[length(x)]), digits = 4)))
     
     isolate({
       if(is.null(input$timeframePredict)){
@@ -1843,21 +1855,41 @@ server <- function(input, output, session) {
   
   observeEvent(input$checkGroupTelegram, {
     if(!is.null(input$checkGroupTelegram)){
+      print(input$tablist)
       
+      support_check = binance_support_check(input$checkGroupTelegram)
       
-      support_check = possibly_riingo_crypto_latest(input$checkGroupTelegram, resample_frequency = '5min')
-      
-      if(length(support_check) == 1){
+      if(length(support_check) == 1 & input$tablist == "telegramNotifications"){
         print("erroring coin, not supported")
         shinyalert("Error",
                    "This coin is not supported for automation. Please select another!",
                    type = 'error')
-      }else if(length(binance_support_check(input$checkGroupTelegram)) == 1){
+      }else if(length(binance_support_check(input$checkGroupTelegram)) == 1 & input$tablist == "telegramNotifications"){
         shinyalert("Error",
                    "This coin is not supported for automation. Please select another 1!",
                    type = 'error')
       }
     }
+  })
+  
+  observeEvent(input$checkGroupBinance, {
+    if(!is.null(input$checkGroupBinance)){
+      print(input$tablist)
+      
+      support_check = binance_support_check(input$checkGroupBinance)
+      
+      if(length(support_check) == 1 & input$tablist == "automation"){
+        print("erroring coin, not supported")
+        shinyalert("Error",
+                   "This coin is not supported for automation. Please select another!",
+                   type = 'error')
+      }else if(length(binance_support_check(input$checkGroupBinance)) == 1 & input$tablist == "automation"){
+        shinyalert("Error",
+                   "This coin is not supported for automation. Please select another 1!",
+                   type = 'error')
+      }
+    }
+    
   })
   
   observeEvent(input$submitTelegramAutomation, {
@@ -2007,7 +2039,7 @@ server <- function(input, output, session) {
                    Confidence = input$confidenceThresholdAutomation,
                    Percentage = input$sliderBalanceUsed,
                    TakeProfit = input$takeProfitBinanceAutomation,
-                   StopLoss = 0.33 * input$takeProfitBinanceAutomation,
+                   StopLoss = input$stopLossBinanceAutomation,
                    Active = TRUE
     )
     saveRDS(x, file = paste0(tempdir(), "/x.rds"))
@@ -2068,7 +2100,7 @@ server <- function(input, output, session) {
   observeEvent(input$cancelBinanceAutomation, {
     
     row.selected = input$activeAutomationInfo_rows_selected
-    coin.selected = df.coins.running$Coins[row.selected]
+    coin.selected = df.coins.running2$Coins[row.selected]
     print(row.selected)
     print(coin.selected)
     

@@ -2827,6 +2827,7 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   df.purchases = na.omit(df.purchases)
   
   df.purchases$OH = round((df.purchases$High - df.purchases$Open) / df.purchases$Open * 100, 3)
+  df.purchases$OL = round((df.purchases$Low - df.purchases$Open) / df.purchases$Open * 100, 3)
   df.purchases$OC = round((df.purchases$Close - df.purchases$Open) / df.purchases$Open * 100, 3)
   
   df.purchases = left_join(df.purchases, df.coins.running[,c(3,7)], by = "Coins")
