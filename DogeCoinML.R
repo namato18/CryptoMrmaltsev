@@ -476,10 +476,10 @@ predict.tomorrow.multiple <- function(Type,Symbols, Timeframe, SuccessThreshold)
   # i = 1
   # SuccessThreshold = 0.9
   # Type="Crypto"
-  # assign("predictions.df.indi1", NULL, .GlobalEnv)
-  # assign("predictions.df.indi2", NULL, .GlobalEnv)
-  # assign("predictions.df.indi3", NULL, .GlobalEnv)
-  # assign("predictions.df.indi4", NULL, .GlobalEnv)
+  assign("predictions.df.indi1", NULL, .GlobalEnv)
+  assign("predictions.df.indi2", NULL, .GlobalEnv)
+  assign("predictions.df.indi3", NULL, .GlobalEnv)
+  assign("predictions.df.indi4", NULL, .GlobalEnv)
   
   
   print(Type)
@@ -940,7 +940,7 @@ predict_week = function(symbol, timeframe,type){
   # symbol = 'ETHUSDT'
   # timeframe = 'daily'
   # type = "Crypto"
-  data = data.frame(getSymbols.tiingo(Symbols = symbol, auto.assign = FALSE,api.key = '6fbd6ce7c9e035489f6238bfab127fcedbe34ac2', periodicity = timeframe))
+  data = data.frame(getSymbols.tiingo(Symbols = symbol, auto.assign = FALSE,api.key = 'bea6df07d69d627087abb23b369b3d0f82e75739', periodicity = timeframe))
   # data = data.frame(getSymbols(symbol, auto.assign = FALSE, periodicity = timeframe))
   data = data[,1:4]
   data = na.omit(data)
@@ -2039,13 +2039,13 @@ Backtest.AV <- function(df, startDate, endDate, topic, type){
 ##############################################################
 
 BackTestFF = function(region,topic,date.range,asset,timeframe,impact,sub.filter = "All"){
-  # region = "USD"
-  # asset = "EURUSD"
-  # timeframe = "5min"
-  # topic = "Employment"
-  # date.range = c("2020-01-01",'2023-09-09')
-  # sub.filter = "Unemployment Claims"
-  # impact = "yel"
+  region = "USD"
+  asset = "EURUSD"
+  timeframe = "60min"
+  topic = "Growth"
+  date.range = c("2020-01-01",'2023-09-09')
+  sub.filter = "All"
+  impact = "All"
   
   timeframe.numeric = as.numeric(str_extract(timeframe,pattern = "\\d+"))
   
@@ -2603,9 +2603,24 @@ BacktestSentiment <- function(Type,TargetIncreasePercent, SuccessThreshold, Symb
 ##############################################################
 ##############################################################
 
-BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidence.score){
-  
-  
+BacktestAutomation <- function(shortBacktestCoins,shortBacktestInterval,shortBacktestTP,shortBacktestSL,
+                               confidenceBacktestAutomation,shortBacktestTimeframe,feeInput,shortBacktestTarget){
+  # print(shortBacktestCoins)
+  # print(shortBacktestInterval)
+  # print(shortBacktestTP)
+  # print(shortBacktestSL)
+  # print(confidenceBacktestAutomation)
+  # print(shortBacktestTimeframe)
+  # print(feeInput)
+  # print(shortBacktestTarget)
+  # shortBacktestCoins = c("SOLUSDT")
+  # shortBacktestInterval = "4hour"
+  # confidenceBacktestAutomation = 0.7
+  # shortBacktestTimeframe = 30
+  # feeInput = 0
+  # shortBacktestTarget = 0.8
+  # shortBacktestTP = 0.8
+  # shortBacktestSL = 0
   # user = "nick"
   # timeframe = 7
   # fee = 0
@@ -2637,31 +2652,34 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   ohlc.list = list()
   to.remove = c()
   
-  for(i in 1:nrow(df.coins.running)){
-    df = possibly_riingo_crypto_prices(ticker = df.coins.running$Coins[i],
+  for(i in 1:length(shortBacktestCoins)){
+    df = possibly_riingo_crypto_prices(ticker = shortBacktestCoins[i],
                                        start_date = Sys.Date() - 7,
                                        end_date = Sys.Date(),
-                                       resample_frequency = df.coins.running$Timeframe[i],
+                                       resample_frequency = shortBacktestInterval,
                                        exchanges = "binance")
     if(length(df) == 1){
       to.remove = c(to.remove,i)
       next()
     }
     bst = s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/TiingoBoosts"),
-                       object = paste0("bst_",df.coins.running$Coins[i],"_",df.coins.running$Timeframe[i],df.coins.running$Target[i],".rds"))
+                       object = paste0("bst_",shortBacktestCoins[i],"_",shortBacktestInterval,shortBacktestTarget,".rds"))
     
-    if(df.coins.running$Timeframe[i] == '4hour' | df.coins.running$Timeframe[i] == '8hour'| df.coins.running$Timeframe[i] == '1hour'| df.coins.running$Timeframe[i] == '15min' |
-       df.coins.running$Timeframe[i] == '30min' | df.coins.running$Timeframe[i] == '45min'){
+    if(shortBacktestInterval == '4hour' | shortBacktestInterval == '8hour'| shortBacktestInterval == '1hour'| shortBacktestInterval == '15min' |
+       shortBacktestInterval == '30min' | shortBacktestInterval == '45min'){
       #df1 = riingo_crypto_prices('REEFUSDT', end_date = Sys.Date(), resample_frequency = '4hour')
       #df1 = df1[-nrow(df1),]
       #df2 = riingo_crypto_latest('REEFUSDT', resample_frequency = '4hour')
       #df = rbind(df1,df2)
-      df1 = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i], exchanges = "binance")
+      # usd.usdt = str_match(string = shortBacktestCoins[i], pattern = "(.*)USDT")[,2]
+      # df.usd = riingo_crypto_prices(paste0(usd.usdt, "USD"), start_date = Sys.Date() - as.numeric(shortBacktestTimeframe), end_date = Sys.Date(), resample_frequency = shortBacktestInterval, exchanges = "binance")
+      df1 = riingo_crypto_prices(shortBacktestCoins[i], start_date = Sys.Date() - as.numeric(shortBacktestTimeframe), end_date = Sys.Date(), resample_frequency = shortBacktestInterval, exchanges = "binance")
       df1 = df1[-nrow(df1),]
-      df2 = riingo_crypto_latest(df.coins.running$Coins[i], resample_frequency = df.coins.running$Timeframe[i], exchanges = "binance")
+      df2 = riingo_crypto_latest(shortBacktestCoins[i], resample_frequency = shortBacktestInterval, exchanges = "binance")
       df = rbind(df1,df2)
+      # df = df[-duplicated(df$date),]
     }else{
-      df = riingo_crypto_prices(df.coins.running$Coins[i], start_date = Sys.Date() - as.numeric(timeframe), end_date = Sys.Date(), resample_frequency = df.coins.running$Timeframe[i], exchanges = "binance")
+      df = riingo_crypto_prices(shortBacktestCoins[i], start_date = Sys.Date() - as.numeric(shortBacktestTimeframe), end_date = Sys.Date(), resample_frequency = shortBacktestInterval, exchanges = "binance")
     }
     
     # Modify data to be more useable
@@ -2749,7 +2767,7 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
     
     ### Grab open high low close for later
     df.ohlc = as.data.frame(df[,c(1:4)])
-    df.ohlc$Coins = df.coins.running$Coins[i]
+    df.ohlc$Coins = shortBacktestCoins[i]
     df.ohlc$Time = row.names(df.ohlc)
     
     # REMOVE FIRST ONE TO GET TIMEING RIGHT FOR PURCHASES
@@ -2779,17 +2797,17 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
     }
     
     temp.list = list(df.ohlc = df.ohlc)
-    assign(paste0("temp.list.",df.coins.running$Coins[i]),temp.list,.GlobalEnv)
+    assign(paste0("temp.list.",shortBacktestCoins[i]),temp.list,.GlobalEnv)
     
     ohlc.list = c(ohlc.list,temp.list)
     
-    print(paste0(i," out of: ",nrow(df.coins.running)))
+    print(paste0(i," out of: ",length(shortBacktestCoins)))
   }
   
   if(length(to.remove) != 0){
-    colnames(predictions.comb) = df.coins.running$Coins[-to.remove]
+    colnames(predictions.comb) = shortBacktestCoins[-to.remove]
   }else{
-    colnames(predictions.comb) = df.coins.running$Coins
+    colnames(predictions.comb) = shortBacktestCoins
   }
   
   t.predictions.comb = t(predictions.comb)
@@ -2797,7 +2815,7 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   woulda.bought = c()
   confidence.scores = c()
   for(i in 1:ncol(t.predictions.comb)){
-    x = (which(t.predictions.comb[,i] >= confidence.score & t.predictions.comb[,i] == max(t.predictions.comb[,i])))
+    x = (which(t.predictions.comb[,i] >= confidenceBacktestAutomation & t.predictions.comb[,i] == max(t.predictions.comb[,i])))
     conf = max(t.predictions.comb[,i])
     if(length(x) < 1){
       x = NA
@@ -2831,11 +2849,44 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   df.purchases$OL = round((df.purchases$Low - df.purchases$Open) / df.purchases$Open * 100, 3)
   df.purchases$OC = round((df.purchases$Close - df.purchases$Open) / df.purchases$Open * 100, 3)
   
-  df.purchases = left_join(df.purchases, df.coins.running[,c(3,7)], by = "Coins")
+  #df.purchases = left_join(df.purchases, df.coins.running[,c(3,7)], by = "Coins")
+  df.purchases$TakeProfit = shortBacktestTP
+  df.purchases$StopLoss = shortBacktestSL
   
   df.purchases$PL = 0
   df.purchases$PL[df.purchases$OH >= df.purchases$TakeProfit] = df.purchases$TakeProfit[df.purchases$OH >= df.purchases$TakeProfit]
   df.purchases$PL[df.purchases$OH < df.purchases$TakeProfit] = df.purchases$OC[df.purchases$OH < df.purchases$TakeProfit]
+  
+  
+  # IN DEPTH STOP LOSS
+  if(shortBacktestSL != 0){
+    
+    df.purchases$PL[df.purchases$OL <= shortBacktestSL] = shortBacktestSL
+    
+    for(i in 1:nrow(df.purchases)){
+      if(df.purchases$OH[i] >= shortBacktestTP & df.purchases$OL[i] <= shortBacktestSL){
+        
+        df = possibly_riingo_crypto_prices(ticker = df.purchases$Coins[i],
+                                           start_date = as.Date(df.purchases$Time[i]),
+                                           end_date = as.Date(df.purchases$Time[i]) + 1,
+                                           resample_frequency = "5min",
+                                           exchanges = "binance")
+        df = df %>%
+          filter(df$date >= df.purchases$Time[i] & df$date <= as_datetime(df.purchases$Time[i]) + as.duration(shortBacktestInterval))
+        df = df[-nrow(df),]
+        
+        first.TP = min(which(((df$high - df$open[1]) / df$open[1] * 100) >= shortBacktestTP))
+        first.SL = min(which(((df$low - df$open[1]) / df$open[1] * 100) <= shortBacktestSL))
+        
+        if(first.TP < first.SL){
+          df.purchases$PL[i] = shortBacktestTP
+        }else{
+          df.purchases$PL[i] = shortBacktestSL
+        }
+      }
+      print(i)
+    }
+  }
   
   numeric_cols = sapply(df.purchases, is.numeric)
   df.purchases[numeric_cols] = lapply(df.purchases[numeric_cols], signif, digits = 6)
@@ -2847,9 +2898,9 @@ BacktestAutomation <- function(df.coins.running, user, timeframe, fee, confidenc
   df.purchases$TakeProfit = paste0(df.purchases$TakeProfit, " %")
   df.purchases$PL = paste0(df.purchases$PL, " %")
   
-  colnames(df.purchases) = c("Open", "High", "Low", "Close", "Coin", "Time (UTC)", "Confidence Scores", "Open/High", "Open/Close", "Take Profit", "PL")
+  colnames(df.purchases) = c("Open", "High", "Low", "Close", "Coin", "Time (UTC)", "Confidence Scores", "Open/High","Open/Low", "Open/Close", "Take Profit","Stop Loss", "PL")
   
-  fee.to.subtract = fee * nrow(df.purchases) * 2
+  fee.to.subtract = feeInput * nrow(df.purchases) * 2
   PL = PL - fee.to.subtract
   
   to.return = list(df.purchases = df.purchases,

@@ -1,3 +1,4 @@
+library(pryr)
 library(shiny)
 library(shinydashboard)
 library(dashboardthemes)
@@ -738,13 +739,13 @@ ui <- secure_app(
                                "SNXUSDT" = "SNXUSDT",
                                "DYDXUSDT" = "DYDXUSDT",
                                "MATICUSDT" = "MATICUSDT")),
-                             selectInput("timeframeFF","Select a Timeframe to Analyze", choices = list("5 Minutes" = "5min",
-                                                                                                       "30 Minutes" = "30min",
-                                                                                                       "1 Hour" = "60min")),
-                             selectInput("selectImpact", "Select an Impact", choices = list("All" = "All",
-                                                                                            "Red" = "red",
-                                                                                            "Orange" = "ora",
-                                                                                            "Yellow" = "yel")),
+                             # selectInput("timeframeFF","Select a Timeframe to Analyze", choices = list("5 Minutes" = "5min",
+                             #                                                                           "30 Minutes" = "30min",
+                             #                                                                           "1 Hour" = "60min")),
+                             # selectInput("selectImpact", "Select an Impact", choices = list("All" = "All",
+                             #                                                                "Red" = "red",
+                             #                                                                "Orange" = "ora",
+                             #                                                                "Yellow" = "yel")),
                              actionButton("generateBacktestFF", "Generate Backtest")
                              
                          )
@@ -779,9 +780,9 @@ ui <- secure_app(
                   ),
                   box(title = "Inputs", status = "primary", solidHeader = TRUE,width=4,
                       selectInput("timeframeTelegramAutomation","Pick a Timeframe to Automate", choices = list("15 min" = "15min",
-                                                                                                       "30 min" = "30min",
-                                                                                                       "1 Hour" = "1hour",
-                                                                                                       "4 Hour" = "4hour")),
+                                                                                                               "30 min" = "30min",
+                                                                                                               "1 Hour" = "1hour",
+                                                                                                               "4 Hour" = "4hour")),
                       br(),
                       selectInput('checkGroupTelegram',label = 'Select Coin(s) to Automate', choices = checkbox_list, multiple = FALSE, selected = 'BTCUSDT'),
                       br(),
@@ -818,29 +819,53 @@ ui <- secure_app(
                                  color = 'danger',
                                  size = 'lg',
                                  block = TRUE)
-                  ),
-                  box(title = "Short Term Backtesting", status = "primary", solidHeader = TRUE,width=12,
-                      selectInput(inputId = "shortBacktestTimeframeTelegram",label = "Please Select a Timeframe", choices = list("1 week" = 7,
-                                                                                                                         "2 weeks" = 14,
-                                                                                                                         "1 month" = 28,
-                                                                                                                         "3 month" = 90)),
-                      sliderInput(inputId = "confidenceBacktestTelegramAutomation", label = "Confidence Score Threshold", min = 0, max = 1, value = 0.7, step = 0.02),
-                      numericInput(inputId = "feeInputTelegram", label = "Fee per Transaction", value = 0),
-                      actionButton(inputId = "shortBacktestTelegram", label = "Generate Backtest"),
-                      dataTableOutput("shortBacktestTableTelegram"),
-                      valueBoxOutput("ProfitLossTelegram")
-                  ),
+                  )
+                  # box(title = "Short Term Backtesting", status = "primary", solidHeader = TRUE,width=12,
+                  #     selectInput(inputId = "shortBacktestTimeframeTelegram",label = "Please Select a Timeframe", choices = list("1 week" = 7,
+                  #                                                                                                        "2 weeks" = 14,
+                  #                                                                                                        "1 month" = 28,
+                  #                                                                                                        "3 month" = 90)),
+                  #     sliderInput(inputId = "confidenceBacktestTelegramAutomation", label = "Confidence Score Threshold", min = 0, max = 1, value = 0.7, step = 0.02),
+                  #     numericInput(inputId = "feeInputTelegram", label = "Fee per Transaction", value = 0),
+                  #     actionButton(inputId = "shortBacktestTelegram", label = "Generate Backtest"),
+                  #     dataTableOutput("shortBacktestTableTelegram"),
+                  #     valueBoxOutput("ProfitLossTelegram")
+                  # ),
                   
                   
                 )),
         tabItem(tabName = "automation",
                 fluidRow(
+
+                  # HTML("<div id='paypal-button-container-P-85036910DS991772JMWALS2I'></div>
+                  #   <script src='https://www.paypal.com/sdk/js?client-id=Abo6TDwPCyrpxqnLFlJOZ6sPUJp2Aps2AnrrMzmMZxSfbiP55TbhtJKD62USXukG5r4B0mOXgE0oH5FO&vault=true&intent=subscription' data-sdk-integration-source='button-factory'></script>
+                  #   <script>
+                  #   paypal.Buttons({
+                  #     style: {
+                  #       shape: 'rect',
+                  #       color: 'gold',
+                  #       layout: 'vertical',
+                  #       label: 'subscribe'
+                  #     },
+                  #     createSubscription: function(data, actions) {
+                  #       return actions.subscription.create({
+                  #         /* Creates the subscription */
+                  #           plan_id: 'P-85036910DS991772JMWALS2I'   
+                  #       });
+                  #     },
+                  #     onApprove: function(data, actions) {
+                  #       alert('Your subscription plan has been started!'); // You can add optional success message for the subscriber here
+                  #     }
+                  #   }).render('#paypal-button-container-P-85036910DS991772JMWALS2I'); // Renders the PayPal button
+                  # </script>"),
+                  actionButton("paypal","Subscribe", class = "btn-warning"),
+  
                   add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "bottom-right"),
                   # selectInput(inputId = "selectAPI", label = "Select API", choices = list("nick" = "nick",
                   #                                                                         "gentlemam1"="gentlemam1",
                   #                                                                         "gentlemam2" = "gentlemam2",
                   #                                                                         "gentlemam3" = "gentlemam3")),
-
+                  
                   # strong(h1("Binance Automation")),
                   box(title = "Binance Automation",status = "primary",solidHeader = TRUE, width=12,
                       paste0("This tab allows you to start and stop automation. Use the inputs to set up your automation criteria."),
@@ -863,7 +888,7 @@ ui <- secure_app(
                       br(),
                       sliderInput("takeProfitBinanceAutomation", "Set Take Profit %",min = 0, max = 5, step = 0.1, value = 0),
                       br(),
-                      sliderInput("stopLossBinanceAutomation", "Set Minimum Stop Loss as % of Take Profit",min = 0, max = 5, step = 0.1, value = 0),
+                      sliderInput("stopLossBinanceAutomation", "Set Stop Loss %",min = -5, max = 0, step = 0.1, value = 0),
                       br(),
                       sliderInput("confidenceThresholdAutomation", "Required Confidence Score to Buy", min = 0.1, max = 1, step = 0.02, value = 0.9),
                       br(),
@@ -874,7 +899,7 @@ ui <- secure_app(
                                  color = 'success',
                                  size = 'lg',
                                  block = TRUE)
-
+                      
                   ),
                   box(title = "Live Price", status = "primary", solidHeader = TRUE,
                       # actionButton(inputId = 'getLivePrice', label = 'Refresh Live Price'),
@@ -901,23 +926,26 @@ ui <- secure_app(
                                  block = TRUE)
                   ),
                   box(title = "Short Term Backtesting", status = "primary", solidHeader = TRUE,width=12,
-                      selectInput(inputId = "shortBacktestCoins", label = "Select Coins to Backtest", choices = checkbox_list, width = "40%"),
+                      selectInput(inputId = "shortBacktestCoins", label = "Select Coins to Backtest", choices = checkbox_list,multiple = TRUE, width = "40%"),
                       selectInput(inputId = "shortBacktestInterval", label = "Select an Automation Timeframe", width = "40%", choices = list("15 min" = "15min",
-                                                                                                                              "30 min" = "30min",
-                                                                                                                              "45 min" = "45min",
-                                                                                                                              "1 Hour" = "1hour",
-                                                                                                                              "4 Hour" = "4hour",
-                                                                                                                              "8 Hour" = "8hour",
-                                                                                                                              "12 Hour" = "12hour",
-                                                                                                                              "1 day" = "1day")),
+                                                                                                                                             "30 min" = "30min",
+                                                                                                                                             "45 min" = "45min",
+                                                                                                                                             "1 Hour" = "1hour",
+                                                                                                                                             "4 Hour" = "4hour",
+                                                                                                                                             "8 Hour" = "8hour",
+                                                                                                                                             "12 Hour" = "12hour",
+                                                                                                                                             "1 day" = "1day")),
+                      sliderInput(inputId = "shortBacktestTarget", label = "Set the Target Increase for the Model", min = 0, max = 3, step = 0.2,value=0, width = "40%"),
                       sliderInput(inputId = "shortBacktestTP", label = "Set Take Profit", min = 0, max = 5, value = 0, step = 0.1, width = "40%"),
                       sliderInput(inputId = "shortBacktestSL", label = "Set Stop Loss (leaving as 0 will have no stop loss and sell at end of candle if TP is not hit)", min = -5, max = 0, value = 0, step = 0.1, width = "40%"),
                       sliderInput(inputId = "confidenceBacktestAutomation", label = "Confidence Score Threshold", min = 0, max = 1, value = 0.7, step = 0.02 , width = "40%"),
-                  
+                      
                       selectInput(inputId = "shortBacktestTimeframe",label = "Please Select a Backtesting Window", width = "40%", choices = list("1 week" = 7,
-                                                                                                                         "2 weeks" = 14,
-                                                                                                                         "1 month" = 28,
-                                                                                                                         "3 month" = 90)),
+                                                                                                                                                 "2 weeks" = 14,
+                                                                                                                                                 "1 month" = 28,
+                                                                                                                                                 "3 month" = 90,
+                                                                                                                                                 "6 month" = 180,
+                                                                                                                                                 "1 year" = 360)),
                       numericInput(inputId = "feeInput", label = "Fee per Transaction", value = 0),
                       actionButton(inputId = "shortBacktest", label = "Generate Backtest"),
                       dataTableOutput("shortBacktestTable"),
@@ -950,7 +978,7 @@ ui <- secure_app(
                   #     selectInput('selectTradesPlaced', "Select a Coin", choices = checkbox_list),
                   #     dataTableOutput("tradesPlaced")
                   # )
-
+                  
                 ))
         
         # tabItem(tabName = "etherscan",
@@ -994,7 +1022,6 @@ server <- function(input, output, session) {
   
   source("DogeCoinML.R")
   
-  
   dateTime = reactiveVal(Sys.time())
   output$timer = renderText(paste0("Time reamining in this candle: ",dateTime()))
   
@@ -1030,7 +1057,7 @@ server <- function(input, output, session) {
         # x = riingo_crypto_latest(input$checkGroupBinance, exchanges = "binance")$close
       }
     }
-
+    
     # output$livePrice = renderText(paste0(input$checkGroupBinance,": ",signif(as.numeric(x[length(x)]), digits = 4)))
     
     isolate({
@@ -1091,14 +1118,14 @@ server <- function(input, output, session) {
                                     StopLoss = character(),
                                     Active = character())
       df.coins.running2 = data.frame(User = character(),
-                                    Timeframe = character(),
-                                    Coins = character(),
-                                    Target = character(),
-                                    Confidence = character(),
-                                    Percentage = character(),
-                                    TakeProfit = character(),
-                                    StopLoss = character(),
-                                    Active = character())
+                                     Timeframe = character(),
+                                     Coins = character(),
+                                     Target = character(),
+                                     Confidence = character(),
+                                     Percentage = character(),
+                                     TakeProfit = character(),
+                                     StopLoss = character(),
+                                     Active = character())
       for(z in 1:length(coins.running)){
         dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Telegram_Automation/",user.logged.in), object = paste0(coins.running[z],".rds"))
         df.coins.running = rbind(df.coins.running, dfx)
@@ -1796,8 +1823,10 @@ server <- function(input, output, session) {
     newsTopic = input$newsTopic
     dateRangeFF = input$dateRangeFF
     assetType = input$assetType
-    timeframeFF = input$timeframeFF
-    impactFF = input$selectImpact
+    # timeframeFF = input$timeframeFF
+    timeframeFF = "60min"
+    # impactFF = input$selectImpact
+    impactFF = "All"
     
     returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,impactFF)
     fig.pie1 = CreatePie(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF, impactFF)
@@ -1822,10 +1851,12 @@ server <- function(input, output, session) {
     newsTopic = input$newsTopic
     dateRangeFF = input$dateRangeFF
     assetType = input$assetType
-    timeframeFF = input$timeframeFF
+    # timeframeFF = input$timeframeFF
+    timeframeFF = "60min"
+    # impactFF = input$selectImpact
+    impactFF = "All"
     sub.category = input$subCategory
-    impactFF = input$selectImpact
-    
+
     returned.data = BackTestFF(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,impactFF,sub.category)
     
     
@@ -1846,10 +1877,12 @@ server <- function(input, output, session) {
     newsTopic = input$newsTopic
     dateRangeFF = input$dateRangeFF
     assetType = input$assetType
-    timeframeFF = input$timeframeFF
+    # timeframeFF = input$timeframeFF
+    timeframeFF = "60min"
+    # impactFF = input$selectImpact
+    impactFF = "All"
     sub.category = input$subCategory
-    impactFF = input$selectImpact
-    
+
     plot = CreateTimeseries(newsRegion,newsTopic,dateRangeFF,assetType,timeframeFF,impactFF,sub.category,input$ffBacktestTable_rows_selected)
     
     output$timeSeriesPlot = renderPlotly(plot)
@@ -2072,14 +2105,14 @@ server <- function(input, output, session) {
     coins.running2 = na.omit(str_match(string = x.sel2$Key, pattern = "/.*/(.*).rds")[,2])
     
     df.coins.running2 = data.frame(User = character(),
-                                  Timeframe = character(),
-                                  Coins = character(),
-                                  Target = character(),
-                                  Confidence = character(),
-                                  Percentage = character(),
-                                  TakeProfit = character(),
-                                  StopLoss = character(),
-                                  Active = character())
+                                   Timeframe = character(),
+                                   Coins = character(),
+                                   Target = character(),
+                                   Confidence = character(),
+                                   Percentage = character(),
+                                   TakeProfit = character(),
+                                   StopLoss = character(),
+                                   Active = character())
     for(z in 1:length(coins.running)){
       dfx = possibly_s3read_using(FUN = readRDS, bucket = paste0("cryptomlbucket/Automation/",user.logged.in), object = paste0(coins.running2[z],".rds"))
       df.coins.running2 = rbind(df.coins.running2, dfx)
@@ -2154,11 +2187,34 @@ server <- function(input, output, session) {
     fee = input$feeInput
     confidence.score = input$confidenceBacktestAutomation
     
-    x = BacktestAutomation(df,reactiveValuesToList(res_auth)$user, timeframe, fee, confidence.score)
+    x = BacktestAutomation(shortBacktestCoins = input$shortBacktestCoins,shortBacktestInterval = input$shortBacktestInterval,
+                           shortBacktestTP = input$shortBacktestTP,shortBacktestSL = input$shortBacktestSL,
+                           confidenceBacktestAutomation = input$confidenceBacktestAutomation,
+                           shortBacktestTimeframe = input$shortBacktestTimeframe,feeInput = input$feeInput,shortBacktestTarget = input$shortBacktestTarget)
     
     output$shortBacktestTable = renderDataTable(datatable(x$df.purchases, style = "bootstrap"))
     output$ProfitLoss = renderValueBox(shinydashboard::valueBox(value = paste0(x$PL, "%"), subtitle = "Profit or Loss %", color = "aqua", width = 3))
     print(x$PL)
+  })
+  
+  observeEvent(input$timeframeAutomation, {
+    if(input$timeframeAutomation == "1hour" | input$timeframeAutomation == "45min" |
+       input$timeframeAutomation == "30min" | input$timeframeAutomation == "15min"){
+      updateSliderInput(session = session, 'sliderAutomationTarget', 'Select Target Percentage Increase', min = 0.1, max = 1, value = 0.1, step = 0.1)
+      
+    }else{
+      updateSliderInput(session = session, 'sliderAutomationTarget', 'Select Target Percentage Increase', min = 0.2, max = 3, value = 0.2, step = 0.2)
+    }
+  })
+  
+  observeEvent(input$shortBacktestInterval, {
+    if(input$shortBacktestInterval == "1hour" | input$shortBacktestInterval == "45min" |
+       input$shortBacktestInterval == "30min" | input$shortBacktestInterval == "15min"){
+      updateSliderInput(session = session,inputId = "shortBacktestTarget", label = "Set the Target Increase for the Model", min = 0.1, max = 1, step = 0.1,value=0.1)
+      
+    }else{
+      updateSliderInput(session = session, inputId = "shortBacktestTarget", label = "Set the Target Increase for the Model", min = 0.2, max = 3, step = 0.2,value=0.2)
+    }
   })
   
   
